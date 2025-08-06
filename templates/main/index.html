@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Homepage -Anatema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-primary text-white rounded p-5 mb-4">
+            <h1 class="display-4">
+                <i class="bi bi-tags-fill me-3"></i>
+                Benvenuto in Anatema
+            </h1>
+            <p class="lead">
+                Piattaforma collaborativa per l'etichettatura tematica di risposte testuali 
+                contenute in file Excel, progettata per supportare la ricerca qualitativa.
+            </p>
+            {% if not current_user.is_authenticated %}
+            <hr class="my-4">
+            <div class="d-flex gap-3">
+                <a class="btn btn-light btn-lg" href="{{ url_for('auth.login') }}" role="button">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Accedi
+                </a>
+                <a class="btn btn-outline-light btn-lg" href="{{ url_for('auth.register') }}" role="button">
+                    <i class="bi bi-person-plus me-2"></i>Registrati
+                </a>
+            </div>
+            {% else %}
+            <hr class="my-4">
+            <a class="btn btn-light btn-lg" href="{{ url_for('main.dashboard') }}" role="button">
+                <i class="bi bi-speedometer2 me-2"></i>Vai alla Dashboard
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="bi bi-graph-up me-2"></i>Statistiche Generali
+        </h2>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-2">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-excel display-4 mb-2"></i>
+                <h3 class="card-title">{{ stats.total_files }}</h3>
+                <p class="card-text">File Excel</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-grid-3x3-gap display-4 mb-2"></i>
+                <h3 class="card-title">{{ stats.total_cells }}</h3>
+                <p class="card-text">Celle Testuali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-tags display-4 mb-2"></i>
+                <h3 class="card-title">{{ stats.total_labels }}</h3>
+                <p class="card-text">Etichette</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-pencil-square display-4 mb-2"></i>
+                <h3 class="card-title">{{ stats.total_annotations }}</h3>
+                <p class="card-text">Annotazioni</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-4 mb-2"></i>
+                <h3 class="card-title">{{ stats.total_users }}</h3>
+                <p class="card-text">Utenti</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- File Recenti -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>File Caricati di Recente
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_files %}
+                <div class="list-group list-group-flush">
+                    {% for file in recent_files %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ file.original_filename }}</h6>
+                            <small class="text-muted">
+                                Caricato il {{ file.uploaded_at.strftime('%d/%m/%Y alle %H:%M') }}
+                            </small>
+                        </div>
+                        {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('excel.view_file', file_id=file.id) }}" class="btn btn-sm btn-outline-primary">
+                            Visualizza
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">Nessun file caricato ancora.</p>
+                {% endif %}
+                
+                {% if current_user.is_authenticated %}
+                <div class="mt-3">
+                    <a href="{{ url_for('excel.list_files') }}" class="btn btn-primary">
+                        <i class="bi bi-list me-1"></i>Vedi Tutti i File
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Etichette Popolari -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-star me-2"></i>Etichette Più Utilizzate
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if popular_labels %}
+                <div class="list-group list-group-flush">
+                    {% for label, count in popular_labels %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <span class="badge me-2" style="background-color: {{ label.get_effective_color() }};">
+                                &nbsp;
+                            </span>
+                            <div>
+                                <h6 class="mb-1">{{ label.name }}</h6>
+                                {% if label.category %}
+                                <small class="text-muted">{{ label.category }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">Nessuna etichetta utilizzata ancora.</p>
+                {% endif %}
+                
+                {% if current_user.is_authenticated %}
+                <div class="mt-3">
+                    <a href="{{ url_for('labels.list_labels') }}" class="btn btn-primary">
+                        <i class="bi bi-tags me-1"></i>Gestisci Etichette
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not current_user.is_authenticated %}
+<!-- Funzionalità -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Funzionalità Principali</h2>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-cloud-upload display-3 text-primary mb-3"></i>
+                <h5 class="card-title">Caricamento File Excel</h5>
+                <p class="card-text">
+                    Carica facilmente i tuoi file Excel contenenti risposte testuali. 
+                    L'applicazione estrae automaticamente le celle con contenuto testuale.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-tags display-3 text-success mb-3"></i>
+                <h5 class="card-title">Sistema di Etichettatura</h5>
+                <p class="card-text">
+                    Crea etichette personalizzate con nome, descrizione, categoria e colore. 
+                    Assegna multiple etichette a ogni cella per un'analisi tematica dettagliata.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people display-3 text-info mb-3"></i>
+                <h5 class="card-title">Collaborazione</h5>
+                <p class="card-text">
+                    Lavora in team con altri ricercatori. Visualizza le etichette assegnate 
+                    da altri utenti e confronta le diverse interpretazioni.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

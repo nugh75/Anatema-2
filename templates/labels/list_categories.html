@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Gestisci Categorie -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="bi bi-folder-plus me-2"></i>Gestisci Categorie
+            </h2>
+            <div>
+                <a href="{{ url_for('labels.create_category') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Crea Categoria
+                </a>
+                {% if show_inactive %}
+                <a href="{{ url_for('labels.list_categories') }}" class="btn btn-outline-info">
+                    <i class="bi bi-eye me-1"></i>Solo Attive
+                </a>
+                {% else %}
+                <a href="{{ url_for('labels.list_categories', show_inactive=True) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-eye-slash me-1"></i>Mostra Inattive
+                </a>
+                {% endif %}
+                <a href="{{ url_for('labels.list_labels') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Torna alle Etichette
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-folder me-2"></i>Categorie
+                </h5>
+                <small class="text-muted">
+                    Pagina {{ categories.page }} di {{ categories.pages }} ({{ categories.total }} categorie totali)
+                </small>
+            </div>
+            <div class="card-body">
+                {% if categories.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrizione</th>
+                                <th class="text-center">Etichette</th>
+                                <th class="text-center">Stato</th>
+                                <th class="text-center">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories.items %}
+                            <tr {% if not category.is_active %}class="table-secondary"{% endif %}>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="color-indicator me-2" 
+                                             style="background-color: {{ category.color }}; width: 20px; height: 20px; border-radius: 4px;"></div>
+                                        <strong>{{ category.name }}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ category.description or 'Nessuna descrizione' }}
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">
+                                        {{ category_stats[category.id] }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    {% if category.is_active %}
+                                    <span class="badge bg-success">Attiva</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inattiva</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('labels.edit_category', category_id=category.id) }}" 
+                                           class="btn btn-outline-primary" 
+                                           title="Modifica">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% if category.is_active %}
+                                            {% if category_stats[category.id] == 0 %}
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger" 
+                                                    title="Elimina"
+                                                    onclick="confirmDelete({{ category.id }}, '{{ category.name }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% else %}
+                                            <button type="button" 
+                                                    class="btn btn-outline-warning" 
+                                                    title="Disattiva"
+                                                    onclick="confirmDeactivate({{ category.id }}, '{{ category.name }}')">
+                                                <i class="bi bi-eye-slash"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger" 
+                                                    title="Elimina categoria e {{ category_stats[category.id] }} etichette"
+                                                    onclick="confirmDeleteWithLabels({{ category.id }}, '{{ category.name }}', {{ category_stats[category.id] }})">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                            {% endif %}
+                                        {% else %}
+                                            <button type="button" 
+                                                    class="btn btn-outline-success" 
+                                                    title="Riattiva"
+                                                    onclick="confirmReactivate({{ category.id }}, '{{ category.name }}')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginazione -->
+                {% if categories.pages > 1 %}
+                <nav aria-label="Navigazione categorie" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if categories.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('labels.list_categories', page=categories.prev_num, show_inactive=show_inactive) }}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in categories.iter_pages() %}
+                        {% if page_num %}
+                        {% if page_num != categories.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('labels.list_categories', page=page_num, show_inactive=show_inactive) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if categories.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('labels.list_categories', page=categories.next_num, show_inactive=show_inactive) }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-folder-x display-4 text-muted mb-3"></i>
+                    <h6 class="text-muted">Nessuna categoria trovata</h6>
+                    <p class="text-muted">Crea la prima categoria per organizzare le etichette</p>
+                    <a href="{{ url_for('labels.create_category') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Crea Prima Categoria
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form nascosto per eliminazione -->
+<form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+</form>
+
+<!-- Form nascosto per eliminazione con etichette -->
+<form id="deleteWithLabelsForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input type="hidden" name="force_delete" value="true">
+</form>
+
+<!-- Form nascosto per toggle attivo/inattivo -->
+<form id="toggleForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide flash messages
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            if (alert && alert.parentNode) {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.parentNode.removeChild(alert);
+                    }
+                }, 500);
+            }
+        }, 5000);
+    });
+});
+
+function confirmDelete(categoryId, categoryName) {
+    if (confirm(`Sei sicuro di voler eliminare definitivamente la categoria "${categoryName}"?`)) {
+        const form = document.getElementById('deleteForm');
+        form.action = "{{ url_for('labels.delete_category', category_id=0) }}".replace('0', categoryId);
+        form.submit();
+    }
+}
+
+function confirmDeactivate(categoryId, categoryName) {
+    if (confirm(`Sei sicuro di voler disattivare la categoria "${categoryName}"?`)) {
+        const form = document.getElementById('toggleForm');
+        form.action = "{{ url_for('labels.toggle_category_active', category_id=0) }}".replace('0', categoryId);
+        form.submit();
+    }
+}
+
+function confirmReactivate(categoryId, categoryName) {
+    if (confirm(`Sei sicuro di voler riattivare la categoria "${categoryName}"?`)) {
+        const form = document.getElementById('toggleForm');
+        form.action = "{{ url_for('labels.toggle_category_active', category_id=0) }}".replace('0', categoryId);
+        form.submit();
+    }
+}
+
+function confirmDeleteWithLabels(categoryId, categoryName, labelCount) {
+    const message = `ATTENZIONE!\n\nStai per eliminare la categoria "${categoryName}" che contiene ${labelCount} etichette.\n\nQuesto disattiverà:\n- La categoria\n- Tutte le ${labelCount} etichette\n\nQuesta azione può essere annullata riattivando la categoria.\n\nSei sicuro di voler procedere?`;
+    
+    if (confirm(message)) {
+        const form = document.getElementById('deleteWithLabelsForm');
+        form.action = "{{ url_for('labels.delete_category', category_id=0) }}".replace('0', categoryId);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

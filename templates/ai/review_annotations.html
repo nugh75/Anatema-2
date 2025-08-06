@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block title %}Revisione Annotazioni AI - {{ excel_file.original_filename }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Fix per warning CSS browser */
+input::-moz-placeholder { opacity: 1; }
+input:-moz-placeholder { opacity: 1; }
+
+.annotation-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.annotation-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.annotation-header {
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+
+.annotation-body {
+    padding: 15px;
+}
+
+.text-content {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+    margin-bottom: 10px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+}
+
+.suggested-label {
+    display: inline-block;
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 15px;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.confidence-score {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.confidence-bar {
+    height: 6px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+    transition: width 0.3s ease;
+}
+
+.review-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.stats-panel {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    display: block;
+}
+
+.batch-controls {
+    background-color: #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-controls {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.selected-annotation {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.ai-model-info {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+/* ✅ FIX: Rende le icone nei pulsanti trasparenti ai click */
+.accept-btn i,
+.reject-btn i,
+.view-full-text i,
+.btn i {
+    pointer-events: none;
+}
+
+/* ✅ FIX: Assicura che i pulsanti batch siano cliccabili */
+#select-all i,
+#select-none i,
+#batch-accept i,
+#batch-reject i {
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <!-- DEBUG INFO -->
+            <div class="alert alert-info" id="debug-info">
+                <h5>🔍 INFO DEBUG:</h5>
+                <p><strong>File:</strong> {{ excel_file.original_filename }}</p>
+                <p><strong>File ID:</strong> {{ excel_file.id }}</p>
+                <p><strong>Annotazioni pending:</strong> {{ pending_annotations|length }}</p>
+                <p><strong>Total cells:</strong> {{ total_cells }}</p>
+                <p><strong>AI annotations count:</strong> {{ ai_annotations_count }}</p>
+            </div>
+            
+            <!-- DEBUG LOG AREA -->
+            <div class="alert alert-warning" id="debug-log-container">
+                <h6>📋 LOG DEBUG EVENTI:</h6>
+                <div id="debug-log" style="max-height: 300px; overflow-y: auto; background-color: #000; color: #0f0; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 14px; white-space: pre-wrap;">
+                    Inizializzazione...\n
+                </div>
+                <button onclick="clearDebugLog()" class="btn btn-sm btn-secondary mt-2">Pulisci Log</button>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-eye-fill me-2"></i>Revisione Annotazioni AI</h2>
+                    <p class="text-muted mb-0">File: {{ excel_file.original_filename }}</p>
+                </div>
+                <div>
+                    <button onclick="window.close()" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-x-lg"></i> Chiudi
+                    </button>
+                    <a href="{{ url_for('excel.view_question', file_id=excel_file.id, question_name='') }}" 
+                       class="btn btn-primary" target="_blank">
+                        <i class="bi bi-arrow-left"></i> Torna al File
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche -->
+    <div class="stats-panel">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ total_cells }}</span>
+                    <div>Risposte Totali</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ annotated_cells }}</span>
+                    <div>Annotate</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ ai_annotations_count }}</span>
+                    <div>Annotazioni AI</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">{{ pending_annotations|length }}</span>
+                    <div>Da Rivedere</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if pending_annotations %}
+        <!-- Controlli Batch -->
+        <div class="batch-controls">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-2">Azioni in Blocco</h6>
+                    <div class="d-flex gap-2">
+                        <button id="select-all" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-check-all"></i> Seleziona Tutti
+                        </button>
+                        <button id="select-none" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x-square"></i> Deseleziona Tutti
+                        </button>
+                        <button id="batch-accept" class="btn btn-sm btn-success" disabled>
+                            <i class="bi bi-check-circle"></i> Accetta Selezionati
+                        </button>
+                        <button id="batch-reject" class="btn btn-sm btn-danger" disabled>
+                            <i class="bi bi-x-circle"></i> Rifiuta Selezionati
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-end">
+                        <span id="selected-count" class="badge bg-info text-dark">0 selezionati</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtri -->
+        <div class="filter-controls">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="confidence-filter" class="form-label">Filtra per Confidence:</label>
+                    <select id="confidence-filter" class="form-select form-select-sm">
+                        <option value="">Tutti</option>
+                        <option value="high">Alta (>80%)</option>
+                        <option value="medium">Media (50-80%)</option>
+                        <option value="low">Bassa (<50%)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="label-filter" class="form-label">Filtra per Etichetta:</label>
+                    <select id="label-filter" class="form-select form-select-sm">
+                        <option value="">Tutte</option>
+                        {% for annotation in pending_annotations %}
+                            {% set label_name = annotation.label %}
+                            <option value="{{ label_name }}">{{ label_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="sort-by" class="form-label">Ordina per:</label>
+                    <select id="sort-by" class="form-select form-select-sm">
+                        <option value="confidence-desc">Confidence (Alta → Bassa)</option>
+                        <option value="confidence-asc">Confidence (Bassa → Alta)</option>
+                        <option value="created-desc">Data (Recente → Vecchia)</option>
+                        <option value="created-asc">Data (Vecchia → Recente)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Annotazioni -->
+        <div id="annotations-container">
+            {% for annotation in pending_annotations %}
+            <div class="annotation-card" 
+                 data-annotation-id="{{ annotation.id }}"
+                 data-confidence="{{ annotation.confidence }}"
+                 data-label="{{ annotation.label }}"
+                 data-created="{{ annotation.created_at }}">
+                
+                <div class="annotation-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input annotation-checkbox" type="checkbox" 
+                                   value="{{ annotation.id }}" id="check-{{ annotation.id }}">
+                            <label class="form-check-label" for="check-{{ annotation.id }}">
+                                Annotazione #{{ annotation.id }}
+                            </label>
+                        </div>
+                        <div class="ai-model-info">
+                            <i class="bi bi-robot"></i> {{ annotation.provider }} - {{ annotation.model }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="annotation-body">
+                    <!-- Testo originale -->
+                    <div class="text-content">
+                        {{ annotation.text[:300] }}{% if annotation.text|length > 300 %}...{% endif %}
+                    </div>
+                    
+                    <!-- Etichetta suggerita -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="suggested-label">{{ annotation.label }}</span>
+                            <div class="confidence-score">
+                                Confidence: {{ "%.1f"|format(annotation.confidence * 100) }}%
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ annotation.confidence * 100 }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-muted text-end">
+                            <small>{{ annotation.created_at }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Azioni -->
+                    <div class="review-actions">
+                        <button class="btn btn-success btn-sm accept-btn" 
+                                data-annotation-id="{{ annotation.id }}">
+                            <i class="bi bi-check-circle"></i> Accetta
+                        </button>
+                        <button class="btn btn-danger btn-sm reject-btn" 
+                                data-annotation-id="{{ annotation.id }}">
+                            <i class="bi bi-x-circle"></i> Rifiuta
+                        </button>
+                        <button class="btn btn-outline-info btn-sm view-full-text" 
+                                data-text="{{ annotation.text|e }}">
+                            <i class="bi bi-eye"></i> Testo Completo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Stato vuoto -->
+        <div class="empty-state">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <h4>Nessuna Annotazione da Rivedere</h4>
+            <p>Tutte le annotazioni AI sono state processate o non ci sono annotazioni AI per questo file.</p>
+            <a href="{{ url_for('excel.view_question', file_id=excel_file.id, question_name='') }}" 
+               class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i> Torna al File
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal per testo completo -->
+<div class="modal fade" id="fullTextModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Testo Completo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="full-text-content" class="text-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// TEST: Aggiunto alert per verificare l'esecuzione dello script JS
+alert("Script JS di review_annotations.html caricato!");
+
+// Funzione per loggare direttamente nella pagina
+function logToPage(message) {
+    const logArea = document.getElementById('debug-log');
+    if (logArea) {
+        const timestamp = new Date().toLocaleTimeString();
+        logArea.innerHTML += `[${timestamp}] ${message}\n`;
+        logArea.scrollTop = logArea.scrollHeight;
+    } else {
+        console.error('❌ ERRORE: debug-log area non trovata! Messaggio: ' + message);
+    }
+    console.log(message);
+}
+
+// Funzione per gestire la revisione delle annotazioni
+async function reviewAnnotation(annotationId, action) {
+    try {
+        logToPage(`⏳ Invio richiesta ${action} per annotazione ${annotationId}...`);
+        
+        const response = await fetch(`/ai/review/${annotationId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                action: action,
+                reviewer_id: {{ current_user.id }}
+            })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            logToPage(`✅ Annotazione ${annotationId} ${action === 'accept' ? 'accettata' : 'rifiutata'}`);
+            
+            // Rimuove la card dall'interfaccia
+            const card = document.querySelector(`.annotation-card[data-annotation-id="${annotationId}"]`);
+            if (card) {
+                card.style.opacity = '0.5';
+                card.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => card.remove(), 500);
+                
+                // Aggiorna il contatore
+                const pendingCount = document.querySelectorAll('.annotation-card').length;
+                if (pendingCount === 0) {
+                    window.location.reload(); // Ricarica se non ci sono più annotazioni
+                }
+            }
+        } else {
+            throw new Error(data.error || 'Errore sconosciuto');
+        }
+    } catch (error) {
+        logToPage(`❌ ERRORE durante ${action} annotazione ${annotationId}: ${error.message}`);
+        alert(`Errore: ${error.message}`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    logToPage('🔥 DOM LOADED!');
+    
+    // Gestione selezione/deselezione
+    const selectAllBtn = document.getElementById('select-all');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.annotation-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+            updateSelectedCount();
+        });
+    }
+    
+    const selectNoneBtn = document.getElementById('select-none');
+    if (selectNoneBtn) {
+        selectNoneBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.annotation-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            updateSelectedCount();
+        });
+    }
+    
+    // Aggiorna contatore selezione
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.annotation-checkbox:checked').length;
+        document.getElementById('selected-count').textContent = `${selected} selezionati`;
+        
+        // Abilita/disabilita pulsanti batch
+        document.getElementById('batch-accept').disabled = selected === 0;
+        document.getElementById('batch-reject').disabled = selected === 0;
+    }
+    
+    // Listener per checkbox
+    document.querySelectorAll('.annotation-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Gestione accetta/rifiuta singolo
+    document.querySelectorAll('.accept-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            if (annotationId) {
+                reviewAnnotation(annotationId, 'accept');
+            }
+        });
+    });
+    
+    document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            if (annotationId) {
+                reviewAnnotation(annotationId, 'reject');
+            }
+        });
+    });
+    
+    // Gestione accetta/rifiuta batch
+    document.getElementById('batch-accept')?.addEventListener('click', function() {
+        const selected = document.querySelectorAll('.annotation-checkbox:checked');
+        if (confirm(`Accettare ${selected.length} annotazioni selezionate?`)) {
+            selected.forEach(checkbox => {
+                reviewAnnotation(checkbox.value, 'accept');
+            });
+        }
+    });
+    
+    document.getElementById('batch-reject')?.addEventListener('click', function() {
+        const selected = document.querySelectorAll('.annotation-checkbox:checked');
+        if (confirm(`Rifiutare ${selected.length} annotazioni selezionate?`)) {
+            selected.forEach(checkbox => {
+                reviewAnnotation(checkbox.value, 'reject');
+            });
+        }
+    });
+    
+    // Visualizza testo completo
+    const fullTextModal = new bootstrap.Modal('#fullTextModal');
+    document.querySelectorAll('.view-full-text').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('full-text-content').textContent = this.dataset.text;
+            fullTextModal.show();
+        });
+    });
+});
+// Funzione per pulire il log di debug
+function clearDebugLog() {
+    const logArea = document.getElementById('debug-log');
+    if (logArea) {
+        logArea.innerHTML = '';
+        logToPage('🧹 Log pulito!');
+    }
+}
+
+// Inizializza Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

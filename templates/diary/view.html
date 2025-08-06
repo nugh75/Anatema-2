@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.title }} - Diario di Bordo{% endblock %}
+
+{% block extra_css %}
+<style>
+.mention-user {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.mention-file {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.entry-content {
+    line-height: 1.8;
+    font-size: 1.1em;
+}
+
+/* Stili per il contenuto HTML */
+.entry-content h1,
+.entry-content h2,
+.entry-content h3,
+.entry-content h4,
+.entry-content h5,
+.entry-content h6 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.entry-content h1 { font-size: 1.5rem; }
+.entry-content h2 { font-size: 1.4rem; }
+.entry-content h3 { font-size: 1.3rem; }
+
+.entry-content p {
+    margin-bottom: 1rem;
+}
+
+.entry-content ul,
+.entry-content ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.entry-content li {
+    margin-bottom: 0.5rem;
+}
+
+.entry-content blockquote {
+    border-left: 4px solid #007bff;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    font-style: italic;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.entry-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.entry-content th,
+.entry-content td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.entry-content th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.entry-content code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.entry-content pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.entry-content strong {
+    font-weight: 600;
+}
+
+.entry-content em {
+    font-style: italic;
+}
+
+.entry-content a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.entry-content a:hover {
+    text-decoration: underline;
+}
+
+.entry-meta {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.priority-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.attachment-card {
+    transition: all 0.3s ease;
+}
+
+.attachment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('diary.index') }}">Diario di Bordo</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ entry.title }}</li>
+                        </ol>
+                    </nav>
+                    <h1 class="mb-0">
+                        <i class="{{ entry.get_activity_icon() }} me-2 {{ entry.get_priority_class() }}"></i>
+                        {{ entry.title }}
+                    </h1>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if entry.author_id == current_user.id or current_user.is_admin %}
+                        <a href="{{ url_for('diary.edit', id=entry.id) }}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i>Modifica
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="bi bi-trash me-1"></i>Elimina
+                        </button>
+                    {% endif %}
+                    <a href="{{ url_for('diary.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna al Diario
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Contenuto principale -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <!-- Contenuto -->
+                    <div class="entry-content mb-4">
+                        {{ content_with_links|safe }}
+                    </div>
+
+                    <!-- Allegati -->
+                    {% if entry.attachments %}
+                        <div class="mt-4">
+                            <h5><i class="bi bi-paperclip me-2"></i>Allegati ({{ entry.attachments|length }})</h5>
+                            <div class="row g-3">
+                                {% for attachment in entry.attachments %}
+                                    <div class="col-md-6">
+                                        <div class="card attachment-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    {% if attachment.mime_type and attachment.mime_type.startswith('image/') %}
+                                                        <i class="bi bi-image fs-3 text-success me-3"></i>
+                                                    {% elif attachment.original_name.lower().endswith('.pdf') %}
+                                                        <i class="bi bi-file-earmark-pdf fs-3 text-danger me-3"></i>
+                                                    {% elif attachment.original_name.lower().endswith(('.doc', '.docx')) %}
+                                                        <i class="bi bi-file-earmark-word fs-3 text-primary me-3"></i>
+                                                    {% elif attachment.original_name.lower().endswith(('.xls', '.xlsx')) %}
+                                                        <i class="bi bi-file-earmark-excel fs-3 text-success me-3"></i>
+                                                    {% else %}
+                                                        <i class="bi bi-file-earmark fs-3 text-secondary me-3"></i>
+                                                    {% endif %}
+                                                    
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">{{ attachment.original_name }}</h6>
+                                                        <small class="text-muted">
+                                                            {{ attachment.file_size_human }}
+                                                            • {{ attachment.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mt-2">
+                                                    <a href="{{ url_for('static', filename='uploads/diary/' + attachment.filename) }}" 
+                                                       target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-download me-1"></i>Scarica
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar metadati -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informazioni</h5>
+                </div>
+                <div class="card-body entry-meta">
+                    <!-- Status e Priorità -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Status:</strong>
+                            <span class="badge bg-{{ 'success' if entry.status == 'completed' else 'warning' if entry.status == 'active' else 'secondary' }} priority-badge">
+                                {% if entry.status == 'active' %}
+                                    <i class="bi bi-circle-fill me-1"></i>Attivo
+                                {% elif entry.status == 'completed' %}
+                                    <i class="bi bi-check-circle-fill me-1"></i>Completato
+                                {% else %}
+                                    <i class="bi bi-archive-fill me-1"></i>Archiviato
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Priorità:</strong>
+                            <span class="badge bg-{{ 'success' if entry.priority == 'low' else 'warning' if entry.priority == 'medium' else 'danger' }} priority-badge">
+                                {% if entry.priority == 'low' %}
+                                    <i class="bi bi-arrow-down me-1"></i>Bassa
+                                {% elif entry.priority == 'medium' %}
+                                    <i class="bi bi-dash me-1"></i>Media
+                                {% elif entry.priority == 'high' %}
+                                    <i class="bi bi-arrow-up me-1"></i>Alta
+                                {% else %}
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Urgente
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Dettagli -->
+                    <div class="mb-3">
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Autore:</strong></div>
+                            <div class="col-8">
+                                <i class="bi bi-person me-1"></i>{{ entry.author.username }}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Creato:</strong></div>
+                            <div class="col-8">
+                                <i class="bi bi-calendar me-1"></i>{{ entry.created_at.strftime('%d/%m/%Y %H:%M') }}
+                            </div>
+                        </div>
+                        
+                        {% if entry.updated_at != entry.created_at %}
+                            <div class="row mb-2">
+                                <div class="col-4"><strong>Modificato:</strong></div>
+                                <div class="col-8">
+                                    <i class="bi bi-calendar-event me-1"></i>{{ entry.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row mb-2">
+                            <div class="col-4"><strong>Tipo:</strong></div>
+                            <div class="col-8">
+                                <i class="{{ entry.get_activity_icon() }} me-1"></i>
+                                {% if entry.activity_type == 'general' %}Generale
+                                {% elif entry.activity_type == 'meeting' %}Riunione
+                                {% elif entry.activity_type == 'milestone' %}Milestone
+                                {% elif entry.activity_type == 'issue' %}Problema
+                                {% elif entry.activity_type == 'reflection' %}Riflessione
+                                {% elif entry.activity_type == 'consideration' %}Considerazione
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if entry.project %}
+                            <div class="row mb-2">
+                                <div class="col-4"><strong>Progetto:</strong></div>
+                                <div class="col-8">
+                                    <i class="bi bi-folder me-1"></i>{{ entry.project.original_filename }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-4"><strong>Parole:</strong></div>
+                            <div class="col-8">
+                                <i class="bi bi-file-text me-1"></i>{{ entry.word_count }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tag -->
+                    {% if entry.tags_list %}
+                        <hr>
+                        <div class="mb-3">
+                            <strong class="d-block mb-2">Tag:</strong>
+                            {% for tag in entry.tags_list %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Menzioni -->
+                    {% if entry.mentioned_users_list %}
+                        <hr>
+                        <div class="mb-3">
+                            <strong class="d-block mb-2">Utenti Menzionati:</strong>
+                            {% for user in entry.mentioned_users_list %}
+                                <span class="mention-user me-1 mb-1">@{{ user }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- File Referenziati -->
+                    {% if entry.referenced_files_list %}
+                        <hr>
+                        <div>
+                            <strong class="d-block mb-2">File Referenziati:</strong>
+                            {% for file in entry.referenced_files_list %}
+                                <span class="mention-file me-1 mb-1">#{{ file }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Azioni rapide -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightning me-2"></i>Azioni Rapide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('diary.create', project_id=entry.project_id if entry.project else '') }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus me-1"></i>Nuova Voce Correlata
+                        </a>
+                        
+                        <button type="button" class="btn btn-outline-info btn-sm" 
+                                onclick="copyToClipboard('{{ entry.title }}', '{{ entry.content|replace('\n', '\\n')|replace('\'', '\\\'')|safe }}')">
+                            <i class="bi bi-clipboard me-1"></i>Copia Contenuto
+                        </button>
+                        
+                        <a href="{{ url_for('diary.export_options') }}?entry_id={{ entry.id }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-download me-1"></i>Esporta Solo Questa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma eliminazione -->
+{% if entry.author_id == current_user.id or current_user.is_admin %}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare la voce del diario <strong>"{{ entry.title }}"</strong>?</p>
+                <p class="text-muted">Questa azione non può essere annullata. 
+                {% if entry.attachments %}
+                    Verranno eliminati anche {{ entry.attachments|length }} allegato/i.
+                {% endif %}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form method="POST" action="{{ url_for('diary.delete', id=entry.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Elimina Definitivamente
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyToClipboard(title, content) {
+    const text = `${title}\n${'='.repeat(title.length)}\n\n${content}`;
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Contenuto copiato negli appunti!', 'success');
+        }).catch(err => {
+            console.error('Errore nella copia:', err);
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showToast('Contenuto copiato negli appunti!', 'success');
+    } catch (err) {
+        console.error('Errore nella copia:', err);
+        showToast('Errore nella copia del contenuto', 'error');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showToast(message, type) {
+    // Crea un toast Bootstrap se non esiste già un sistema di notifiche
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toastEl);
+    
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+    
+    // Rimuovi il toast dal DOM dopo che è scomparso
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        toastEl.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '11';
+    document.body.appendChild(container);
+    return container;
+}
+
+// Smooth scroll per i link interni
+document.addEventListener('DOMContentLoaded', function() {
+    // Evidenzia i link alle menzioni
+    document.querySelectorAll('.mention-user, .mention-file').forEach(element => {
+        element.style.cursor = 'pointer';
+        element.addEventListener('click', function() {
+            showToast(`Clicked on ${this.textContent}`, 'info');
+        });
+    });
+});
+</script>
+{% endblock %}

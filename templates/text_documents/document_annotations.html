@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+
+{% block title %}Annotazioni - {{ document.filename }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Header -->
+                <!-- Header -->
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h2>Annotazioni di "{{ document.original_name }}"</h2>
+                    <p class="text-muted">Gestisci le annotazioni del documento</p>
+                </div>
+            </div>
+            
+            <!-- Bottoni di azione su righe separate -->
+            <div class="row mb-4">
+                <div class="col-12 mb-2">
+                    <a href="{{ url_for('text_documents.annotate', document_id=document.id) }}" 
+                       class="btn btn-primary me-2">
+                        <i class="bi bi-pencil-square me-1"></i> Continua Annotazione
+                    </a>
+                    <a href="{{ url_for('text_documents.list_documents') }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Torna alla Lista
+                    </a>
+                </div>
+                <div class="col-12">
+                    <!-- Dropdown per esportazione -->
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i> Esporta Annotazioni
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header">Seleziona formato:</h6></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportAnnotations('pdf')">
+                                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportAnnotations('word')">
+                                <i class="bi bi-file-earmark-word me-1"></i> Word
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportAnnotations('latex')">
+                                <i class="bi bi-file-earmark-text me-1"></i> LaTeX
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Statistiche -->
+        <div class="col-12 mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="card-title h5">{{ stats.total_annotations }}</div>
+                                    <div class="small">Annotazioni Totali</div>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-tag fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="card-title h5">{{ stats.unique_labels }}</div>
+                                    <div class="small">Etichette Diverse</div>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-tags fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="card-title h5">{{ stats.annotators }}</div>
+                                    <div class="small">Annotatori</div>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-people fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <div class="card-title h5">{{ "%.1f"|format(stats.coverage_percentage) }}%</div>
+                                    <div class="small">Copertura Testo</div>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="bi bi-pie-chart fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Filtri -->
+        <div class="col-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filtri</h5>
+                    <form method="GET" id="filterForm">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="categoryFilter" class="form-label">Filtra per Categoria:</label>
+                                <select class="form-select" id="categoryFilter" name="categories" multiple>
+                                    {% for category in categories %}
+                                    <option value="{{ category.name }}" 
+                                            {% if category.name in selected_categories %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Tieni premuto Ctrl/Cmd per selezionare più categorie</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="labelFilter" class="form-label">Filtra per Etichetta:</label>
+                                <select class="form-select" id="labelFilter">
+                                    <option value="">Tutte le etichette</option>
+                                    {% for label in labels %}
+                                    <option value="{{ label.id }}">{{ label.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="textFilter" class="form-label">Cerca nel testo:</label>
+                                <input type="text" class="form-control" id="textFilter" 
+                                       placeholder="Cerca nel testo...">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-funnel me-1"></i> Applica Filtro Categoria
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clearFilters">
+                                    <i class="bi bi-x-circle me-1"></i> Pulisci Filtri
+                                </button>
+                                {% if selected_categories %}
+                                <span class="badge bg-info ms-2">
+                                    Filtrato per: {{ selected_categories|join(', ') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Lista Annotazioni -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Lista Annotazioni</h5>
+                </div>
+                <div class="card-body">
+                    {% if annotations %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="annotationsTable">
+                            <thead>
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="15%">Etichetta</th>
+                                    <th width="40%">Testo Annotato</th>
+                                    <th width="15%">Posizione</th>
+                                    <th width="15%">Annotatore</th>
+                                    <th width="10%">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for annotation in annotations %}
+                                <tr class="annotation-row" 
+                                    data-label-id="{{ annotation.label_id }}"
+                                    data-annotation-id="{{ annotation.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <span class="badge" 
+                                              style="background-color: {{ annotation.label.color }}; color: white;">
+                                            {{ annotation.label.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="annotation-text">
+                                            {{ document.content[annotation.start_position:annotation.end_position] }}
+                                        </div>
+                                        {% if annotation.note %}
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="fas fa-sticky-note"></i> {{ annotation.note }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ annotation.start_position }} - {{ annotation.end_position }}
+                                            <br>
+                                            ({{ annotation.end_position - annotation.start_position }} caratteri)
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ annotation.user.username }}
+                                            <br>
+                                            <span class="text-muted">
+                                                {{ annotation.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                            </span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary btn-sm edit-annotation"
+                                                    data-annotation-id="{{ annotation.id }}"
+                                                    title="Modifica">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            {% if current_user.is_admin or annotation.user_id == current_user.id %}
+                                            <button class="btn btn-outline-danger btn-sm delete-annotation"
+                                                    data-annotation-id="{{ annotation.id }}"
+                                                    title="Elimina">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-tags fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nessuna annotazione trovata</h5>
+                        <p class="text-muted">
+                            {% if selected_categories %}
+                            Nessuna annotazione trovata per le categorie selezionate.
+                            {% else %}
+                            Questo documento non ha ancora annotazioni.
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('text_documents.annotate', document_id=document.id) }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Inizia ad Annotare
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per modifica annotazione -->
+<div class="modal fade" id="editAnnotationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifica Annotazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAnnotationForm">
+                    <input type="hidden" id="editAnnotationId">
+                    <div class="mb-3">
+                        <label for="editLabelSelect" class="form-label">Etichetta:</label>
+                        <select class="form-select" id="editLabelSelect" required>
+                            {% for label in labels %}
+                            <option value="{{ label.id }}">{{ label.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNote" class="form-label">Nota (opzionale):</label>
+                        <textarea class="form-control" id="editNote" rows="3" 
+                                  placeholder="Aggiungi una nota a questa annotazione..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveAnnotationChanges">Salva</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtri
+    const labelFilter = document.getElementById('labelFilter');
+    const textFilter = document.getElementById('textFilter');
+    const clearFilters = document.getElementById('clearFilters');
+    const table = document.getElementById('annotationsTable');
+    
+    function applyFilters() {
+        const selectedLabelId = labelFilter.value;
+        const searchText = textFilter.value.toLowerCase();
+        const rows = table.querySelectorAll('tbody tr.annotation-row');
+        
+        rows.forEach(row => {
+            const labelId = row.dataset.labelId;
+            const annotationText = row.querySelector('.annotation-text').textContent.toLowerCase();
+            
+            const labelMatch = !selectedLabelId || labelId === selectedLabelId;
+            const textMatch = !searchText || annotationText.includes(searchText);
+            
+            row.style.display = (labelMatch && textMatch) ? '' : 'none';
+        });
+    }
+    
+    labelFilter.addEventListener('change', applyFilters);
+    textFilter.addEventListener('input', applyFilters);
+    
+    clearFilters.addEventListener('click', function() {
+        labelFilter.value = '';
+        textFilter.value = '';
+        document.getElementById('categoryFilter').value = '';
+        applyFilters();
+    });
+    
+    // Funzione per esportazione
+    window.exportAnnotations = function(format) {
+        const selectedCategories = Array.from(document.getElementById('categoryFilter').selectedOptions)
+                                      .map(option => option.value);
+        
+        let url = `{{ url_for('text_documents.export_annotations', document_id=document.id, format_type='FORMAT') }}`.replace('FORMAT', format);
+        
+        if (selectedCategories.length > 0) {
+            const params = selectedCategories.map(cat => `categories=${encodeURIComponent(cat)}`).join('&');
+            url += '?' + params;
+        }
+        
+        // Mostra indicatore di caricamento
+        const exportButton = document.querySelector('.btn-success.dropdown-toggle');
+        const originalText = exportButton.innerHTML;
+        exportButton.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Esportando...';
+        exportButton.disabled = true;
+        
+        // Crea link temporaneo per il download
+        const link = document.createElement('a');
+        link.href = url;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Ripristina il bottone dopo un breve delay
+        setTimeout(() => {
+            exportButton.innerHTML = originalText;
+            exportButton.disabled = false;
+        }, 2000);
+    };
+    
+    // Modifica annotazione
+    const editModal = new bootstrap.Modal(document.getElementById('editAnnotationModal'));
+    const editForm = document.getElementById('editAnnotationForm');
+    
+    document.querySelectorAll('.edit-annotation').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            const row = this.closest('tr');
+            const currentLabelId = row.dataset.labelId;
+            
+            // Imposta i valori nel modal
+            document.getElementById('editAnnotationId').value = annotationId;
+            document.getElementById('editLabelSelect').value = currentLabelId;
+            
+            // Trova nota esistente
+            const noteElement = row.querySelector('.bi-sticky-note, .fa-sticky-note');
+            if (noteElement) {
+                const noteText = noteElement.parentElement.textContent.replace(/📝|🗒️/, '').trim();
+                document.getElementById('editNote').value = noteText;
+            } else {
+                document.getElementById('editNote').value = '';
+            }
+            
+            editModal.show();
+        });
+    });
+    
+    // Salva modifiche annotazione
+    document.getElementById('saveAnnotationChanges').addEventListener('click', function() {
+        const annotationId = document.getElementById('editAnnotationId').value;
+        const labelId = document.getElementById('editLabelSelect').value;
+        const note = document.getElementById('editNote').value;
+        
+        fetch(`/text-documents/api/annotations/${annotationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                label_id: parseInt(labelId),
+                note: note
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                editModal.hide();
+                location.reload(); // Ricarica per vedere le modifiche
+            } else {
+                alert('Errore: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            alert('Errore durante il salvataggio');
+        });
+    });
+    
+    // Elimina annotazione
+    document.querySelectorAll('.delete-annotation').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!confirm('Sei sicuro di voler eliminare questa annotazione?')) {
+                return;
+            }
+            
+            const annotationId = this.dataset.annotationId;
+            
+            fetch(`/text-documents/api/annotations/${annotationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Ricarica per vedere le modifiche
+                } else {
+                    alert('Errore: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('Errore durante l\'eliminazione');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

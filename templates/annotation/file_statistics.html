@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche {{ file_stats.file.original_filename }} -Anatema{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+    .chart-container {
+        min-height: 400px;
+    }
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('statistics.overview') }}">
+                        <i class="bi bi-graph-up me-1"></i>Statistiche
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    {{ file_stats.file.original_filename[:50] }}{% if file_stats.file.original_filename|length > 50 %}...{% endif %}
+                </li>
+            </ol>
+        </nav>
+        
+        <h2>
+            <i class="bi bi-file-earmark-excel me-2"></i>
+            Statistiche Dettagliate
+        </h2>
+        <p class="text-muted">
+            {{ file_stats.file.original_filename }}
+        </p>
+    </div>
+</div>
+
+<!-- Statistiche generali del file -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-grid-3x3-gap display-4 mb-3"></i>
+                <h3>{{ file_stats.total_cells }}</h3>
+                <p class="mb-0">Celle Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-3"></i>
+                <h3>{{ file_stats.annotated_cells }}</h3>
+                <p class="mb-0">Celle Annotate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-tags display-4 mb-3"></i>
+                <h3>{{ file_stats.label_stats|length }}</h3>
+                <p class="mb-0">Etichette Usate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-percent display-4 mb-3"></i>
+                <h3>{{ file_stats.completion_rate }}%</h3>
+                <p class="mb-0">Completamento</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">
+                    <i class="bi bi-speedometer2 me-2"></i>Progresso Annotazione
+                </h5>
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar {% if file_stats.completion_rate >= 75 %}bg-success{% elif file_stats.completion_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ file_stats.completion_rate }}%"
+                         data-animate="true">
+                        {{ file_stats.completion_rate }}%
+                    </div>
+                </div>
+                <small class="text-muted">
+                    {{ file_stats.annotated_cells }} celle annotate su {{ file_stats.total_cells }} totali
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici -->
+<div class="row mb-4">
+    {% if file_stats.charts.labels_pie %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Distribuzione Etichette
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="labels-pie-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if file_stats.charts.categories_bar %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Annotazioni per Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="categories-bar-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if file_stats.charts.contributors_bar %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>Contributori
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="contributors-bar-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Dettagli etichette -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>Dettaglio Etichette
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if file_stats.label_stats %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Etichetta</th>
+                                <th>Categoria</th>
+                                <th class="text-end">Utilizzi</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_annotations = 0 %}
+                            {% for label in file_stats.label_stats %}
+                              {% set total_annotations = total_annotations + label[3] %}
+                            {% endfor %}
+                            {% for label in file_stats.label_stats %}
+                            <tr>
+                                <td>
+                                    <span class="badge me-2" style="background-color: {{ label.color }};">&nbsp;</span>
+                                    {{ label.name }}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ label.category or 'N/A' }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ label.count }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    <small class="text-muted">
+                                        {{ "%.1f"|format((label.count / total_annotations * 100) if total_annotations > 0 else 0) }}%
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle mb-2"></i>
+                    <p>Nessuna etichetta utilizzata in questo file</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>Contributori al File
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if file_stats.contributors %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Utente</th>
+                                <th class="text-end">Annotazioni</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_contributions = 0 %}
+                            {% for contributor in file_stats.contributors %}
+                              {% set total_contributions = total_contributions + contributor[1] %}
+                            {% endfor %}
+                            {% for contributor in file_stats.contributors %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">{{ contributor.username }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ contributor.count }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    <small class="text-muted">
+                                        {{ "%.1f"|format((contributor.count / total_contributions * 100) if total_contributions > 0 else 0) }}%
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-info-circle mb-2"></i>
+                    <p>Nessun contributore ancora</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informazioni file -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Informazioni File
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Nome originale:</strong> {{ file_stats.file.original_filename }}</p>
+                        <p><strong>Data caricamento:</strong> {{ file_stats.file.upload_date.strftime('%d/%m/%Y %H:%M') if file_stats.file.upload_date else 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Dimensione:</strong> {{ "%.2f"|format(file_stats.file.file_size / 1024 / 1024) if file_stats.file.file_size else 'N/A' }} MB</p>
+                        <p><strong>Stato:</strong> 
+                            {% if file_stats.completion_rate == 100 %}
+                                <span class="badge bg-success">Completato</span>
+                            {% elif file_stats.completion_rate >= 75 %}
+                                <span class="badge bg-info">Quasi completato</span>
+                            {% elif file_stats.completion_rate >= 25 %}
+                                <span class="badge bg-warning">In corso</span>
+                            {% else %}
+                                <span class="badge bg-danger">Iniziato</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Azioni -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="mb-3">
+                    <i class="bi bi-lightning me-2"></i>Azioni
+                </h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('annotation.browse_annotations', file_id=file_stats.file.id) }}" 
+                       class="btn btn-primary">
+                        <i class="bi bi-pencil-square me-1"></i>Annota questo File
+                    </a>
+                    <a href="{{ url_for('excel.view_file', file_id=file_stats.file.id) }}" 
+                       class="btn btn-info">
+                        <i class="bi bi-eye me-1"></i>Visualizza File
+                    </a>
+                    <a href="{{ url_for('statistics.overview') }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna alle Statistiche
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i>Stampa Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Anima la progress bar
+    const progressBar = document.querySelector('.progress-bar[data-animate]');
+    if (progressBar) {
+        const targetWidth = progressBar.style.width;
+        progressBar.style.width = '0%';
+        setTimeout(() => {
+            progressBar.style.transition = 'width 1.5s ease-in-out';
+            progressBar.style.width = targetWidth;
+        }, 200);
+    }
+    
+    // Renderizza i grafici Plotly
+    {% if file_stats.charts.labels_pie %}
+    const labelsPieData = {{ file_stats.charts.labels_pie|safe }};
+    Plotly.newPlot('labels-pie-chart', labelsPieData.data, labelsPieData.layout, {
+        responsive: true,
+        displayModeBar: false
+    });
+    {% endif %}
+    
+    {% if file_stats.charts.categories_bar %}
+    const categoriesBarData = {{ file_stats.charts.categories_bar|safe }};
+    Plotly.newPlot('categories-bar-chart', categoriesBarData.data, categoriesBarData.layout, {
+        responsive: true,
+        displayModeBar: false
+    });
+    {% endif %}
+    
+    {% if file_stats.charts.contributors_bar %}
+    const contributorsBarData = {{ file_stats.charts.contributors_bar|safe }};
+    Plotly.newPlot('contributors-bar-chart', contributorsBarData.data, contributorsBarData.layout, {
+        responsive: true,
+        displayModeBar: false
+    });
+    {% endif %}
+});
+
+// Stili per la stampa
+const printStyles = `
+    @media print {
+        .navbar, .btn, .breadcrumb { display: none !important; }
+        .card { border: 1px solid #000 !important; }
+        body { background: white !important; }
+        .chart-container { height: 300px !important; }
+    }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}

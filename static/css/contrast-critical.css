@@ -1,0 +1,959 @@
+/**
+ * CSS Contrast Critical Fix - Anatema
+ * Correzioni critiche per contrasto con massima priorità
+ * 
+ * Questo file contiene fix per problemi di contrasto critici
+ * che potrebbero non essere risolti dal file contrast-fix.css
+ */
+
+/* === OVERRIDE MASSIMA PRIORITÀ === */
+
+/* Regola generale per tutti gli elementi su sfondo blu scuro */
+.navbar-dark *,
+.bg-primary *,
+.badge-primary *,
+.btn-primary *,
+.card-header.bg-primary * {
+    color: #ffffff !important;
+}
+
+/* Forza testo bianco su elementi scuri */
+.navbar-dark,
+.navbar-dark *,
+.bg-dark,
+.bg-dark *,
+.bg-primary,
+.bg-primary *,
+.badge-primary,
+.badge-primary *,
+.btn-primary,
+.btn-primary *,
+.card-header.bg-primary,
+.card-header.bg-primary *,
+.card-header {
+    color: #ffffff !important;
+}
+
+/* Forza icone bianche su elementi scuri */
+.navbar-dark i,
+.bg-dark i,
+.bg-primary i,
+.badge-primary i,
+.btn-primary i,
+.card-header.bg-primary i,
+.card-header i {
+    color: #ffffff !important;
+}
+
+/* Specifico per icone Bootstrap */
+.navbar-dark .bi,
+.bg-dark .bi,
+.bg-primary .bi,
+.badge-primary .bi,
+.btn-primary .bi,
+.card-header.bg-primary .bi,
+.card-header .bi {
+    color: #ffffff !important;
+}
+
+/* Forza testo scuro su elementi chiari */
+.bg-light,
+.bg-light *,
+.bg-white,
+.bg-white *,
+.card-body,
+.card-body *,
+.table,
+.table * {
+    color: #1a1a1a !important;
+    text-shadow: none !important;
+}
+
+/* === CORREZIONI SPECIFICHE CARD === */
+
+/* Card header con gradiente blu scuro */
+.card-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%) !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Card body con sfondo bianco puro */
+.card-body {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+/* === CORREZIONI BADGE === */
+
+.badge {
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important;
+    border-radius: 0.375rem !important;
+}
+
+/* Badge con classi specifiche - mantengono i colori fissi */
+.badge-primary {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.badge-secondary {
+    background-color: #4b5563 !important;
+    color: #ffffff !important;
+}
+
+.badge-success {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.badge-warning {
+    background-color: #d97706 !important;
+    color: #000000 !important;
+}
+
+.badge-danger {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.badge-info {
+    background-color: #0891b2 !important;
+    color: #ffffff !important;
+}
+
+/* === CORREZIONI BOTTONI === */
+
+.btn {
+    font-weight: 600 !important;
+    border-width: 2px !important;
+    font-size: 1rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.btn-primary {
+    background-color: #1e3a8a !important;
+    border-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.btn-secondary {
+    background-color: #6b7280 !important;
+    border-color: #6b7280 !important;
+    color: #ffffff !important;
+}
+
+.btn-outline-primary {
+    border-color: #1e3a8a !important;
+    color: #1e3a8a !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+/* === CORREZIONI NAVBAR === */
+
+.navbar-dark {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%) !important;
+}
+
+.navbar-dark .navbar-brand,
+.navbar-dark .nav-link {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.navbar-dark .navbar-brand i,
+.navbar-dark .nav-link i,
+.navbar-dark .dropdown-item i,
+.navbar-dark i {
+    color: #ffffff !important;
+}
+
+.navbar-dark .nav-link:hover {
+    color: #cbd5e1 !important;
+}
+
+.navbar-dark .nav-link:hover i,
+.navbar-dark .nav-link:hover .bi {
+    color: #cbd5e1 !important;
+}
+
+/* Stato hover per tutti gli elementi su sfondo scuro */
+.bg-primary:hover *,
+.badge-primary:hover *,
+.btn-primary:hover *,
+.card-header.bg-primary:hover * {
+    color: #ffffff !important;
+}
+
+/* === CORREZIONI LINK === */
+
+a {
+    color: #1e3a8a !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+}
+
+a:hover {
+    color: #1e40af !important;
+    text-decoration: underline !important;
+}
+
+/* === CORREZIONI SEZIONE HERO === */
+
+/* Migliorare il contrasto della sezione "Benvenuto in Anatema" */
+.hero-section,
+.jumbotron,
+.bg-primary .container,
+.bg-primary .row,
+.bg-primary .col-12 {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%) !important;
+}
+
+/* Aumentare il contrasto del testo principale */
+.hero-title,
+.jumbotron h1,
+.bg-primary h1,
+.hero-section h1 {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    font-weight: 700 !important;
+}
+
+/* Migliorare il contrasto del testo descrittivo */
+.hero-description,
+.jumbotron p,
+.bg-primary p,
+.hero-section p {
+    color: #e2e8f0 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    font-weight: 500 !important;
+}
+
+/* Migliorare il contrasto del pulsante principale */
+.hero-button,
+.jumbotron .btn,
+.bg-primary .btn,
+.hero-section .btn {
+    background-color: #ffffff !important;
+    color: #1e3a8a !important;
+    border: 2px solid #ffffff !important;
+    font-weight: 700 !important;
+    padding: 0.75rem 2rem !important;
+    border-radius: 0.5rem !important;
+    text-transform: none !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Stato hover del pulsante hero */
+.hero-button:hover,
+.jumbotron .btn:hover,
+.bg-primary .btn:hover,
+.hero-section .btn:hover {
+    background-color: #f8fafc !important;
+    color: #1e3a8a !important;
+    border-color: #f8fafc !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Link su sfondo scuro */
+.navbar-dark a,
+.bg-dark a,
+.bg-primary a,
+.card-header a {
+    color: #ffffff !important;
+}
+
+.navbar-dark a:hover,
+.bg-dark a:hover,
+.bg-primary a:hover,
+.card-header a:hover {
+    color: #cbd5e1 !important;
+}
+
+/* === CORREZIONI FORM === */
+
+.form-control,
+.form-select {
+    border: 2px solid #d1d5db !important;
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    font-size: 1rem !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #1e3a8a !important;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1) !important;
+}
+
+.form-label {
+    color: #374151 !important;
+    font-weight: 600 !important;
+}
+
+/* === CORREZIONI TABELLE === */
+
+.table {
+    color: #1f2937 !important;
+    background-color: #ffffff !important;
+}
+
+.table th {
+    background-color: #f8fafc !important;
+    color: #1f2937 !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #e5e7eb !important;
+}
+
+.table td {
+    color: #374151 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f8fafc !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f5f9 !important;
+}
+
+/* === CORREZIONI ALERT === */
+
+.alert {
+    border-width: 2px !important;
+    font-weight: 500 !important;
+    border-radius: 0.5rem !important;
+}
+
+.alert-primary {
+    background-color: #dbeafe !important;
+    border-color: #1e3a8a !important;
+    color: #1e3a8a !important;
+}
+
+.alert-success {
+    background-color: #d1fae5 !important;
+    border-color: #059669 !important;
+    color: #059669 !important;
+}
+
+.alert-warning {
+    background-color: #fef3c7 !important;
+    border-color: #d97706 !important;
+    color: #92400e !important;
+}
+
+.alert-danger {
+    background-color: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+}
+
+/* === CORREZIONI TESTO === */
+
+/* Testo principale */
+body {
+    color: #1a1a1a !important;
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+}
+
+/* Titoli */
+h1, h2, h3, h4, h5, h6 {
+    color: #111827 !important;
+    font-weight: 700 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Testo muted più leggibile */
+.text-muted {
+    color: #6b7280 !important;
+}
+
+/* === CORREZIONI INLINE STYLES DINAMICI === */
+
+/* Elementi con background bianco o chiaro inline - forza testo scuro */
+[style*="background-color: #fff"],
+[style*="background-color: #ffffff"],
+[style*="background-color: white"],
+[style*="background-color: #f"],
+[style*="background: #fff"],
+[style*="background: #ffffff"],
+[style*="background: white"],
+[style*="background: #f"] {
+    color: #1a1a1a !important;
+}
+
+/* Elementi con background scuro inline - forza testo bianco */
+[style*="background-color: #000"],
+[style*="background-color: #1"],
+[style*="background-color: #2"],
+[style*="background-color: #3"],
+[style*="background-color: black"],
+[style*="background: #000"],
+[style*="background: #1"],
+[style*="background: #2"],
+[style*="background: #3"],
+[style*="background: black"] {
+    color: #ffffff !important;
+}
+
+/* === FORZATURA TESTO UNIVERSALE === */
+
+/* Override per text-white su qualsiasi elemento */
+.text-white,
+.text-white * {
+    color: #ffffff !important;
+}
+
+/* Ma se è all'interno di una card normale, forza testo scuro */
+.card .text-white:not(.bg-primary):not(.bg-success):not(.bg-warning):not(.bg-info):not(.bg-dark):not(.navbar-dark),
+.card .text-white:not(.bg-primary):not(.bg-success):not(.bg-warning):not(.bg-info):not(.bg-dark):not(.navbar-dark) * {
+    color: #1a1a1a !important;
+}
+
+/* Override per classi Bootstrap text utilities problematiche */
+.text-light,
+.text-light * {
+    color: #6b7280 !important;
+}
+
+/* All'interno di elementi scuri, mantieni text-light bianco */
+.bg-primary .text-light,
+.bg-success .text-light,
+.bg-dark .text-light,
+.navbar-dark .text-light,
+.bg-primary .text-light *,
+.bg-success .text-light *,
+.bg-dark .text-light *,
+.navbar-dark .text-light * {
+    color: #e2e8f0 !important;
+}
+
+/* === CORREZIONI CARD EXCEL FORZATE === */
+
+/* Regola universale per tutte le card - forza testo scuro su sfondo bianco */
+.card, .card * {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+/* Eccezioni per header e footer */
+.card-header, .card-header * {
+    color: #ffffff !important;
+}
+
+.card-footer, .card-footer * {
+    color: #ffffff !important;
+}
+
+/* Card con background colorati mantenibili ma con testo forzato */
+.card.bg-primary, .card.bg-primary *,
+.card-header.bg-primary, .card-header.bg-primary * {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.card.bg-success, .card.bg-success *,
+.card-header.bg-success, .card-header.bg-success * {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.card.bg-warning, .card.bg-warning *,
+.card-header.bg-warning, .card-header.bg-warning * {
+    background-color: #d97706 !important;
+    color: #000000 !important;
+}
+
+.card.bg-info, .card.bg-info *,
+.card-header.bg-info, .card-header.bg-info * {
+    background-color: #0891b2 !important;
+    color: #ffffff !important;
+}
+
+.card.bg-light, .card.bg-light *,
+.card-header.bg-light, .card-header.bg-light * {
+    background-color: #f8fafc !important;
+    color: #1f2937 !important;
+}
+
+/* === CORREZIONI SPECIFICHE PER PAGINE EXCEL === */
+
+/* Card Excel con border colorati */
+.card.border-start {
+    background-color: #ffffff !important;
+}
+
+.card.border-start .card-header {
+    background-color: #f8fafc !important;
+    color: #1f2937 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.card.border-start .card-body {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
+.card.border-start .card-footer {
+    background-color: #f8fafc !important;
+    color: #6b7280 !important;
+}
+
+/* Card con bordi colorati specifici */
+.card.border-success,
+.card.border-warning,
+.card.border-primary,
+.card.border-secondary {
+    background-color: #ffffff !important;
+}
+
+.card.border-success .card-header,
+.card.border-warning .card-header,
+.card.border-primary .card-header,
+.card.border-secondary .card-header {
+    background-color: #f8fafc !important;
+    color: #1f2937 !important;
+}
+
+.card.border-success .card-body,
+.card.border-warning .card-body,
+.card.border-primary .card-body,
+.card.border-secondary .card-body {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
+/* Cell content nelle pagine Excel */
+.cell-content {
+    background-color: #f8fafc !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Response content nelle pagine Excel */
+.response-content {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Label display con colori di sfondo personalizzati */
+.label-display {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+    font-weight: 700 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Forza contrasto per label display con colori chiari */
+.label-display[style*="#ffffff"],
+.label-display[style*="#f"],
+.label-display[style*="white"],
+.label-display[style*="yellow"],
+.label-display[style*="#ffff"],
+.label-display[style*="#fff"] {
+    color: #000000 !important;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Forza contrasto per label con background chiari comuni */
+.label-display[style*="#ffc107"],  /* warning */
+.label-display[style*="#fff3cd"],  /* warning light */
+.label-display[style*="#f8f9fa"],  /* light */
+.label-display[style*="#e9ecef"],  /* light */
+.label-display[style*="#dee2e6"],  /* light */
+.label-display[style*="#ced4da"],  /* light */
+.label-display[style*="#adb5bd"] {  /* light */
+    color: #000000 !important;
+    text-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Badges nelle pagine Excel */
+.card .badge {
+    font-weight: 700 !important;
+}
+
+.card .badge.bg-primary {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.card .badge.bg-success {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.card .badge.bg-warning {
+    background-color: #d97706 !important;
+    color: #000000 !important;
+}
+
+.card .badge.bg-secondary {
+    background-color: #6b7280 !important;
+    color: #ffffff !important;
+}
+
+/* Bottoni nelle card Excel */
+.card .btn-sm {
+    font-weight: 600 !important;
+    border-width: 1px !important;
+}
+
+.card .btn-primary {
+    background-color: #1e3a8a !important;
+    border-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.card .btn-success {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+}
+
+.card .btn-outline-danger {
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+    background-color: #ffffff !important;
+}
+
+.card .btn-outline-danger:hover {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* Liste gruppi nelle pagine Excel */
+.list-group-item {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Progress bar */
+.progress {
+    background-color: #f3f4f6 !important;
+}
+
+.progress-bar {
+    font-weight: 600 !important;
+}
+
+.progress-bar.bg-success {
+    background-color: #059669 !important;
+}
+
+.progress-bar.bg-warning {
+    background-color: #d97706 !important;
+}
+
+.progress-bar.bg-secondary {
+    background-color: #6b7280 !important;
+}
+
+/* === CORREZIONI SPECIFICHE APPLICAZIONE === */
+
+/* Excel response cards */
+.excel-response-card {
+    border: 2px solid #e5e7eb !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.excel-response-card.annotated {
+    border-left: 4px solid #059669 !important;
+    background-color: #f0fdf4 !important;
+}
+
+.excel-response-card.not-annotated {
+    border-left: 4px solid #d97706 !important;
+    background-color: #fffbeb !important;
+}
+
+/* Cell content */
+.cell-content {
+    background-color: #f8fafc !important;
+    border: 1px solid #e5e7eb !important;
+    color: #1f2937 !important;
+    font-weight: 500 !important;
+    padding: 0.75rem !important;
+    border-radius: 0.375rem !important;
+}
+
+/* Response content */
+.response-content {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    color: #374151 !important;
+    padding: 0.75rem !important;
+    border-radius: 0.375rem !important;
+}
+
+/* === CORREZIONI DROPDOWN RIMOSSE - Vedi sotto per versione migliorata === */
+
+/* === FIX SPECIFICI NAVBAR DROPDOWN === */
+
+.navbar .dropdown-menu,
+.navbar-nav .dropdown-menu {
+    background-color: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0.5rem !important;
+    margin-top: 0.25rem !important;
+    min-width: 200px !important;
+}
+
+.navbar .dropdown-item,
+.navbar-nav .dropdown-item {
+    color: #1f2937 !important;
+    font-weight: 600 !important;
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    transition: all 0.2s ease !important;
+}
+
+.navbar .dropdown-item:last-child,
+.navbar-nav .dropdown-item:last-child {
+    border-bottom: none !important;
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus,
+.navbar-nav .dropdown-item:hover,
+.navbar-nav .dropdown-item:focus {
+    background-color: #e5e7eb !important;
+    color: #111827 !important;
+    text-decoration: none !important;
+}
+
+.navbar .dropdown-item:active,
+.navbar-nav .dropdown-item:active {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.navbar .dropdown-header,
+.navbar-nav .dropdown-header {
+    color: #6b7280 !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.navbar .dropdown-divider,
+.navbar-nav .dropdown-divider {
+    border-top: 1px solid #d1d5db !important;
+    margin: 0.25rem 0 !important;
+}
+
+.navbar .dropdown-item i,
+.navbar-nav .dropdown-item i {
+    color: #6b7280 !important;
+    width: 16px !important;
+    text-align: center !important;
+}
+
+.navbar .dropdown-item:hover i,
+.navbar .dropdown-item:focus i,
+.navbar-nav .dropdown-item:hover i,
+.navbar-nav .dropdown-item:focus i {
+    color: #1f2937 !important;
+}
+
+.navbar .dropdown-item:active i,
+.navbar-nav .dropdown-item:active i {
+    color: #ffffff !important;
+}
+
+/* === FIX DROPDOWN UTENTE (destra) === */
+
+.navbar-nav .dropdown-menu-end {
+    background-color: #ffffff !important;
+    border: 2px solid #d1d5db !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0.5rem !important;
+    margin-top: 0.25rem !important;
+    min-width: 180px !important;
+}
+
+/* === DROPDOWN RESPONSIVE === */
+
+@media (max-width: 768px) {
+    .navbar .dropdown-menu,
+    .navbar-nav .dropdown-menu {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0.25rem !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        margin-top: 0 !important;
+        width: 100% !important;
+    }
+    
+    .navbar .dropdown-item,
+    .navbar-nav .dropdown-item {
+        font-size: 16px !important;
+        padding: 1rem !important;
+    }
+}
+
+/* === DEBUG & TEST === */
+
+/* Test specifico per icone su sfondo blu */
+.contrast-debug-icons {
+    background-color: #1e3a8a !important;
+    padding: 1rem !important;
+    margin: 1rem 0 !important;
+    border-radius: 0.5rem !important;
+}
+
+.contrast-debug-icons i,
+.contrast-debug-icons .bi {
+    color: #ffffff !important;
+    font-size: 1.5rem !important;
+    margin: 0.5rem !important;
+}
+
+/* Classe per test contrasto */
+.contrast-test-critical {
+    background: repeating-linear-gradient(
+        45deg,
+        #1e3a8a 0,
+        #1e3a8a 10px,
+        #059669 10px,
+        #059669 20px
+    );
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    padding: 1rem !important;
+    margin: 1rem 0 !important;
+    text-align: center !important;
+    border-radius: 0.5rem !important;
+    border: 3px solid #ffffff !important;
+}
+
+.contrast-test-critical::before {
+    content: "🚨 CONTRASTO CRITICO - Se non vedi questo chiaramente, c'è un problema!";
+    display: block !important;
+    font-size: 1.25rem !important;
+}
+
+/* === UTILITIES PRIORITARIE === */
+
+/* Forza colori di testo */
+.text-force-white,
+.text-force-white * {
+    color: #ffffff !important;
+}
+
+.text-force-dark,
+.text-force-dark * {
+    color: #1a1a1a !important;
+}
+
+.bg-force-dark,
+.bg-force-dark * {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+}
+
+.bg-force-light,
+.bg-force-light * {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+}
+
+/* Forza contrasto su elementi critici */
+.navbar-dark, .navbar-dark *,
+.bg-primary, .bg-primary *,
+.badge-primary, .badge-primary *,
+.btn-primary, .btn-primary *,
+.card-header.bg-primary, .card-header.bg-primary *,
+.alert-primary, .alert-primary * {
+    color: #ffffff !important;
+}
+
+/* Forza contrasto per icone su elementi scuri */
+.navbar-dark i, .navbar-dark .bi,
+.bg-primary i, .bg-primary .bi,
+.badge-primary i, .badge-primary .bi,
+.btn-primary i, .btn-primary .bi,
+.card-header.bg-primary i, .card-header.bg-primary .bi,
+.card-header i, .card-header .bi {
+    color: #ffffff !important;
+}
+
+/* === CORREZIONI SPECIFICHE PER GRADENTI BLU === */
+
+/* Ma forziamo su classi specifiche che sappiamo essere blu */
+.hero-section, .hero-section *,
+.jumbotron, .jumbotron *,
+[class*="bg-primary"], [class*="bg-primary"] *,
+[class*="navbar-dark"], [class*="navbar-dark"] *,
+[style*="#1e3a8a"], [style*="#1e3a8a"] *,
+[style*="#3730a3"], [style*="#3730a3"] *,
+[style*="#1e40af"], [style*="#1e40af"] * {
+    color: #ffffff !important;
+}
+
+/* Icone in elementi con background blu */
+.hero-section i, .hero-section .bi,
+.jumbotron i, .jumbotron .bi,
+[class*="bg-primary"] i, [class*="bg-primary"] .bi,
+[class*="navbar-dark"] i, [class*="navbar-dark"] .bi {
+    color: #ffffff !important;
+}
+
+/* === MEDIA QUERIES === */
+
+@media (max-width: 768px) {
+    body {
+        font-size: 18px !important;
+    }
+    
+    .btn {
+        font-size: 18px !important;
+        padding: 0.75rem 1.25rem !important;
+    }
+    
+    .form-control,
+    .form-select {
+        font-size: 18px !important;
+    }
+    
+    h1 { font-size: 2rem !important; }
+    h2 { font-size: 1.75rem !important; }
+    h3 { font-size: 1.5rem !important; }
+}
+
+@media (prefers-contrast: high) {
+    /* Modalità contrasto alto del sistema */
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    
+    .card {
+        border: 3px solid #000000 !important;
+    }
+    
+    .btn {
+        border-width: 3px !important;
+    }
+    
+    .form-control,
+    .form-select {
+        border-width: 3px !important;
+    }
+}

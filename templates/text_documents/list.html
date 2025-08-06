@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Documenti di Testo{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-file-text"></i> Documenti di Testo</h2>
+                <a href="{{ url_for('text_documents.upload') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Carica Documento
+                </a>
+            </div>
+
+            <!-- Statistiche -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-files display-4 mb-2"></i>
+                            <h4>{{ stats.total }}</h4>
+                            <p class="mb-0">Documenti Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people display-4 mb-2"></i>
+                            <h4>{{ stats.focus_groups }}</h4>
+                            <p class="mb-0">Focus Group</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person-lines-fill display-4 mb-2"></i>
+                            <h4>{{ stats.interviews }}</h4>
+                            <p class="mb-0">Interviste</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-text display-4 mb-2"></i>
+                            <h4>{{ stats.other }}</h4>
+                            <p class="mb-0">Altri</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtri -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="type" class="form-label">Tipo</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="all" {% if current_type == 'all' or not current_type %}selected{% endif %}>Tutti</option>
+                                <option value="focus_group" {% if current_type == 'focus_group' %}selected{% endif %}>Focus Group</option>
+                                <option value="interview" {% if current_type == 'interview' %}selected{% endif %}>Interviste</option>
+                                <option value="other" {% if current_type == 'other' %}selected{% endif %}>Altri</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Ricerca</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Cerca nel nome del documento..."
+                                   value="{{ current_search or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-search"></i> Filtra
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista Documenti -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list"></i> Documenti Caricati
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if documents.items %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome Documento</th>
+                                    <th>Tipo</th>
+                                    <th>Formato</th>
+                                    <th>Statistiche</th>
+                                    <th>Caricato Da</th>
+                                    <th>Data</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents.items %}
+                                <tr data-document-id="{{ document.id }}">
+                                    <td>
+                                        <strong>{{ document.original_name }}</strong>
+                                    </td>
+                                    <td>
+                                        {% if document.document_type == 'focus_group' %}
+                                            <span class="badge bg-info">Focus Group</span>
+                                        {% elif document.document_type == 'interview' %}
+                                            <span class="badge bg-success">Intervista</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Altro</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ document.file_format.upper() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ document.word_count }} parole<br>
+                                            {{ document.annotations|length }} etichette
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ document.uploader.username }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ document.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- Visualizza/Etichetta -->
+                                            <a href="{{ url_for('text_documents.annotate', document_id=document.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Etichetta">
+                                                <i class="bi bi-tags"></i>
+                                            </a>
+                                            
+                                            <!-- Gestisci Annotazioni -->
+                                            <a href="{{ url_for('text_documents.annotations', document_id=document.id) }}" 
+                                               class="btn btn-sm btn-outline-info" title="Gestisci Annotazioni">
+                                                <i class="bi bi-list-check"></i>
+                                            </a>
+                                            
+                                            <!-- Elimina (solo per proprietario o admin) -->
+                                            {% if current_user.is_admin or document.user_id == current_user.id %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-document" 
+                                                    data-document-id="{{ document.id }}" 
+                                                    data-document-name="{{ document.original_name }}" title="Elimina">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginazione -->
+                    {% if documents.pages > 1 %}
+                    <nav aria-label="Paginazione documenti">
+                        <ul class="pagination justify-content-center mt-3">
+                            {% if documents.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('text_documents.list_documents', 
+                                        page=documents.prev_num, type=current_type, search=current_search) }}">
+                                        Precedente
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in documents.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != documents.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('text_documents.list_documents', 
+                                                page=page_num, type=current_type, search=current_search) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if documents.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('text_documents.list_documents', 
+                                        page=documents.next_num, type=current_type, search=current_search) }}">
+                                        Successivo
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-file-text display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Nessun documento trovato</h5>
+                        <p class="text-muted mb-3">
+                            {% if current_type or current_search %}
+                                Prova a modificare i filtri di ricerca.
+                            {% else %}
+                                Inizia caricando il tuo primo documento di testo.
+                            {% endif %}
+                        </p>
+                        <a href="{{ url_for('text_documents.upload') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Carica Primo Documento
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Gestione eliminazione documento
+    document.querySelectorAll('.delete-document').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const documentId = this.dataset.documentId;
+            const documentName = this.dataset.documentName;
+            
+            if (confirm(`Sei sicuro di voler eliminare il documento "${documentName}"?\n\nQuesta azione eliminerà anche tutte le annotazioni associate ed è irreversibile.`)) {
+                deleteDocument(documentId);
+            }
+        });
+    });
+    
+    function deleteDocument(documentId) {
+        fetch(`/text-documents/delete/${documentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                
+                // Rimuovi la riga dalla tabella
+                const row = document.querySelector(`tr[data-document-id="${documentId}"]`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Se non ci sono più documenti, ricarica la pagina
+                if (document.querySelectorAll('tbody tr').length === 0) {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } else {
+                showToast('Errore: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Errore di connessione: ' + error.message, 'error');
+        });
+    }
+    
+    function showToast(message, type = 'info') {
+        // Implementazione toast semplice
+        const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+        const toast = document.createElement('div');
+        toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Rimuovi automaticamente dopo 5 secondi
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

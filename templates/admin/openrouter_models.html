@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Modelli OpenRouter - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+.model-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.model-header {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.model-body {
+    padding: 1rem;
+}
+
+.model-free {
+    border-left: 4px solid #28a745;
+}
+
+.model-paid {
+    border-left: 4px solid #ffc107;
+}
+
+.pricing-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.test-btn {
+    margin-left: 0.5rem;
+}
+
+.loading-spinner {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+}
+
+.test-result {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.test-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-cloud"></i> Modelli OpenRouter</h2>
+                <div>
+                    <button class="btn btn-primary test-all-btn">
+                        <i class="fas fa-check-circle"></i> Test Tutti i Modelli
+                        <div class="loading-spinner spinner-border spinner-border-sm" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </button>
+                    <a href="{{ url_for('admin.ai_configuration') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Torna alle Configurazioni
+                    </a>
+                </div>
+            </div>
+
+            {% if not has_api_key %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Attenzione:</strong> Nessuna API key OpenRouter configurata. 
+                <a href="{{ url_for('admin.create_ai_config') }}">Crea una configurazione OpenRouter</a> 
+                per testare i modelli.
+            </div>
+            {% endif %}
+
+            <!-- Statistiche -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">{{ free_models|length }}</h3>
+                            <small>Modelli Gratuiti</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">{{ paid_models|length }}</h3>
+                            <small>Modelli a Pagamento</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">{{ (free_models|length + paid_models|length) }}</h3>
+                            <small>Totale Modelli</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="{% if has_api_key %}text-success{% else %}text-danger{% endif %}">
+                                {% if has_api_key %}✓{% else %}✗{% endif %}
+                            </h3>
+                            <small>API Key</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modelli Gratuiti -->
+            {% if free_models %}
+            <h4 class="text-success"><i class="fas fa-gift"></i> Modelli Gratuiti</h4>
+            <div class="row">
+                {% for model in free_models %}
+                <div class="col-md-6 mb-3">
+                    <div class="model-card model-free">
+                        <div class="model-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ model.model_id }}</h6>
+                                <div>
+                                    <span class="badge badge-success pricing-badge">GRATUITO</span>
+                                    {% if has_api_key %}
+                                    <button class="btn btn-sm btn-outline-primary test-model-btn test-btn" 
+                                            data-model="{{ model.model_id }}">
+                                        <i class="fas fa-check-circle"></i> Test
+                                        <div class="loading-spinner spinner-border spinner-border-sm" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="model-body">
+                            {% if model.display_name %}
+                            <p class="mb-1"><strong>Nome:</strong> {{ model.display_name }}</p>
+                            {% endif %}
+                            {% if model.description %}
+                            <p class="mb-1"><strong>Descrizione:</strong> {{ model.description[:100] }}{% if model.description|length > 100 %}...{% endif %}</p>
+                            {% endif %}
+                            {% if model.context_length %}
+                            <p class="mb-1"><strong>Context Length:</strong> {{ "{:,}".format(model.context_length) }} tokens</p>
+                            {% endif %}
+                            {% if model.modality %}
+                            <p class="mb-1"><strong>Modalità:</strong> {{ model.modality }}</p>
+                            {% endif %}
+                            <div id="test-result-{{ model.model_id|replace('/', '-')|replace(':', '-') }}" class="test-result" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Modelli a Pagamento -->
+            {% if paid_models %}
+            <h4 class="text-warning"><i class="fas fa-dollar-sign"></i> Modelli a Pagamento</h4>
+            <div class="row">
+                {% for model in paid_models %}
+                <div class="col-md-6 mb-3">
+                    <div class="model-card model-paid">
+                        <div class="model-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ model.model_id }}</h6>
+                                <div>
+                                    <span class="badge badge-warning pricing-badge">A PAGAMENTO</span>
+                                    {% if has_api_key %}
+                                    <button class="btn btn-sm btn-outline-primary test-model-btn test-btn" 
+                                            data-model="{{ model.model_id }}">
+                                        <i class="fas fa-check-circle"></i> Test
+                                        <div class="loading-spinner spinner-border spinner-border-sm" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="model-body">
+                            {% if model.display_name %}
+                            <p class="mb-1"><strong>Nome:</strong> {{ model.display_name }}</p>
+                            {% endif %}
+                            {% if model.description %}
+                            <p class="mb-1"><strong>Descrizione:</strong> {{ model.description[:100] }}{% if model.description|length > 100 %}...{% endif %}</p>
+                            {% endif %}
+                            {% if model.context_length %}
+                            <p class="mb-1"><strong>Context Length:</strong> {{ "{:,}".format(model.context_length) }} tokens</p>
+                            {% endif %}
+                            {% if model.modality %}
+                            <p class="mb-1"><strong>Modalità:</strong> {{ model.modality }}</p>
+                            {% endif %}
+                            {% if model.pricing and model.pricing.get('prompt') %}
+                            <p class="mb-1"><strong>Prezzo Input:</strong> ${{ model.pricing.prompt }} per 1M tokens</p>
+                            {% endif %}
+                            {% if model.pricing and model.pricing.get('completion') %}
+                            <p class="mb-1"><strong>Prezzo Output:</strong> ${{ model.pricing.completion }} per 1M tokens</p>
+                            {% endif %}
+                            <div id="test-result-{{ model.model_id|replace('/', '-')|replace(':', '-') }}" class="test-result" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not free_models and not paid_models %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i>
+                Nessun modello OpenRouter trovato nel database.
+                <br><br>
+                <a href="{{ url_for('admin.sync_openrouter_models') }}" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Sincronizza Modelli OpenRouter
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test singolo modello
+    document.querySelectorAll('.test-model-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modelId = this.dataset.model;
+            const spinner = this.querySelector('.loading-spinner');
+            const resultDiv = document.getElementById(`test-result-${modelId.replace(/[\/\:]/g, '-')}`);
+            
+            testModel(modelId, spinner, resultDiv, this);
+        });
+    });
+    
+    // Test tutti i modelli
+    document.querySelector('.test-all-btn').addEventListener('click', function() {
+        const spinner = this.querySelector('.loading-spinner');
+        const buttons = document.querySelectorAll('.test-model-btn');
+        
+        spinner.style.display = 'inline-block';
+        this.disabled = true;
+        
+        let completed = 0;
+        const total = buttons.length;
+        
+        buttons.forEach(btn => {
+            const modelId = btn.dataset.model;
+            const modelSpinner = btn.querySelector('.loading-spinner');
+            const resultDiv = document.getElementById(`test-result-${modelId.replace(/[\/\:]/g, '-')}`);
+            
+            setTimeout(() => {
+                testModel(modelId, modelSpinner, resultDiv, btn, () => {
+                    completed++;
+                    if (completed === total) {
+                        spinner.style.display = 'none';
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-check"></i> Test Completato';
+                        setTimeout(() => {
+                            this.innerHTML = '<i class="fas fa-check-circle"></i> Test Tutti i Modelli';
+                        }, 2000);
+                    }
+                });
+            }, completed * 500); // Delay per evitare rate limiting
+        });
+    });
+    
+    function testModel(modelId, spinner, resultDiv, button, callback = null) {
+        spinner.style.display = 'inline-block';
+        button.disabled = true;
+        resultDiv.style.display = 'none';
+        
+        // Test di connessione semplice
+        fetch('/admin/openrouter/test-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({model: modelId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `test-result ${data.success ? 'test-success' : 'test-error'}`;
+            resultDiv.textContent = data.message;
+            resultDiv.style.display = 'block';
+        })
+        .catch(error => {
+            resultDiv.className = 'test-result test-error';
+            resultDiv.textContent = 'Errore nella connessione: ' + error.message;
+            resultDiv.style.display = 'block';
+        })
+        .finally(() => {
+            spinner.style.display = 'none';
+            button.disabled = false;
+            if (callback) callback();
+        });
+    }
+});
+</script>
+{% endblock %}

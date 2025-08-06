@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Diario di Bordo{% endblock %}
+
+{% block extra_css %}
+<style>
+.diary-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.diary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.priority-low { border-left-color: #28a745; }
+.priority-medium { border-left-color: #ffc107; }
+.priority-high { border-left-color: #fd7e14; }
+.priority-urgent { border-left-color: #dc3545; }
+
+.mention-user {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.mention-file {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.stats-card {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.export-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header con statistiche -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1><i class="bi bi-journal-text me-2"></i>Diario di Bordo</h1>
+                <div>
+                    <a href="{{ url_for('diary.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Nuova Voce
+                    </a>
+                    <a href="{{ url_for('diary.export_options') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-download me-1"></i>Esporta
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Statistiche -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-journal-text fs-1 mb-2"></i>
+                            <h3 class="mb-0">{{ stats.total }}</h3>
+                            <p class="mb-0">Voci Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-check-circle fs-1 mb-2"></i>
+                            <h3 class="mb-0">{{ stats.active }}</h3>
+                            <p class="mb-0">Attive</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-archive fs-1 mb-2"></i>
+                            <h3 class="mb-0">{{ stats.completed }}</h3>
+                            <p class="mb-0">Completate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-exclamation-triangle fs-1 mb-2"></i>
+                            <h3 class="mb-0">{{ stats.high_priority + stats.urgent }}</h3>
+                            <p class="mb-0">Alta Priorità</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtri -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">Cerca</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ current_filters.search }}" placeholder="Titolo, contenuto, tag...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="type" class="form-label">Tipo Attività</label>
+                            <select class="form-select" id="type" name="type">
+                                <option value="all" {% if current_filters.type == 'all' %}selected{% endif %}>Tutti</option>
+                                <option value="general" {% if current_filters.type == 'general' %}selected{% endif %}>Generale</option>
+                                <option value="meeting" {% if current_filters.type == 'meeting' %}selected{% endif %}>Riunione</option>
+                                <option value="milestone" {% if current_filters.type == 'milestone' %}selected{% endif %}>Milestone</option>
+                                <option value="issue" {% if current_filters.type == 'issue' %}selected{% endif %}>Problema</option>
+                                <option value="decision" {% if current_filters.type == 'decision' %}selected{% endif %}>Decisione</option>
+                                <option value="reflection" {% if current_filters.type == 'reflection' %}selected{% endif %}>Riflessione</option>
+                                <option value="consideration" {% if current_filters.type == 'consideration' %}selected{% endif %}>Considerazione</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="priority" class="form-label">Priorità</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="all" {% if current_filters.priority == 'all' %}selected{% endif %}>Tutte</option>
+                                <option value="low" {% if current_filters.priority == 'low' %}selected{% endif %}>Bassa</option>
+                                <option value="medium" {% if current_filters.priority == 'medium' %}selected{% endif %}>Media</option>
+                                <option value="high" {% if current_filters.priority == 'high' %}selected{% endif %}>Alta</option>
+                                <option value="urgent" {% if current_filters.priority == 'urgent' %}selected{% endif %}>Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>Tutti</option>
+                                <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Attivo</option>
+                                <option value="completed" {% if current_filters.status == 'completed' %}selected{% endif %}>Completato</option>
+                                <option value="archived" {% if current_filters.status == 'archived' %}selected{% endif %}>Archiviato</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid gap-2 d-md-flex">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-1"></i>Filtra
+                                </button>
+                                <a href="{{ url_for('diary.index') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-lg me-1"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista voci diario -->
+    <div class="row">
+        <div class="col-12">
+            {% if entries.items %}
+                {% for entry in entries.items %}
+                <div class="card diary-card priority-{{ entry.priority }} mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-9">
+                                <div class="d-flex align-items-start">
+                                    <i class="{{ entry.get_activity_icon() }} fs-4 me-3 {{ entry.get_priority_class() }}"></i>
+                                    <div class="flex-grow-1">
+                                        <h5 class="card-title mb-1">
+                                            <a href="{{ url_for('diary.view', id=entry.id) }}" class="text-decoration-none">
+                                                {{ entry.title }}
+                                            </a>
+                                        </h5>
+                                        <p class="card-text text-muted mb-2">{{ entry.content_preview }}</p>
+                                        
+                                        <!-- Tag e menzioni -->
+                                        <div class="mb-2">
+                                            {% if entry.tags_list %}
+                                                {% for tag in entry.tags_list %}
+                                                    <span class="badge bg-secondary me-1">{{ tag }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            {% if entry.mentioned_users_list %}
+                                                {% for user in entry.mentioned_users_list %}
+                                                    <span class="mention-user me-1">@{{ user }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                            
+                                            {% if entry.referenced_files_list %}
+                                                {% for file in entry.referenced_files_list %}
+                                                    <span class="mention-file me-1">#{{ file }}</span>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Metadati -->
+                                        <small class="text-muted">
+                                            <i class="bi bi-person me-1"></i>{{ entry.author.username }}
+                                            <i class="bi bi-calendar ms-3 me-1"></i>{{ entry.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                            {% if entry.project %}
+                                                <i class="bi bi-folder ms-3 me-1"></i>{{ entry.project.original_filename }}
+                                            {% endif %}
+                                            {% if entry.attachments %}
+                                                <i class="bi bi-paperclip ms-3 me-1"></i>{{ entry.attachments|length }} allegato/i
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <div class="mb-2">
+                                    <span class="badge bg-{{ 'success' if entry.status == 'completed' else 'warning' if entry.status == 'active' else 'secondary' }}">
+                                        {{ entry.status.title() }}
+                                    </span>
+                                    <span class="badge bg-{{ 'success' if entry.priority == 'low' else 'warning' if entry.priority == 'medium' else 'danger' }}">
+                                        {{ entry.priority.title() }}
+                                    </span>
+                                </div>
+                                
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('diary.view', id=entry.id) }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if entry.author_id == current_user.id or current_user.is_admin %}
+                                        <a href="{{ url_for('diary.edit', id=entry.id) }}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Paginazione -->
+                {% if entries.pages > 1 %}
+                <nav aria-label="Paginazione diario">
+                    <ul class="pagination justify-content-center">
+                        {% if entries.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('diary.index', page=entries.prev_num, **current_filters) }}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in entries.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != entries.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('diary.index', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if entries.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('diary.index', page=entries.next_num, **current_filters) }}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-x fs-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">Nessuna voce trovata</h3>
+                    <p class="text-muted">Inizia creando la tua prima voce del diario di bordo.</p>
+                    <a href="{{ url_for('diary.create') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Crea Prima Voce
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit del form di filtro quando cambiano i select
+document.addEventListener('DOMContentLoaded', function() {
+    const selectElements = document.querySelectorAll('select[name="type"], select[name="priority"], select[name="status"]');
+    selectElements.forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+    
+    // Submit del form di ricerca con Enter
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

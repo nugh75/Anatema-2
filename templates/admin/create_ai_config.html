@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Crea Configurazione AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.provider-section {
+    display: none;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    background-color: #f8f9fa;
+}
+
+.provider-section.active {
+    display: block;
+}
+
+.form-help {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.preview-prompt {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 0.9em;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.model-grid {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.model-option {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.loading-spinner {
+    width: 1rem;
+    height: 1rem;
+}
+
+.test-result {
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.test-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.test-connection {
+    margin-top: 15px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-plus"></i> Crea Nuova Configurazione AI</h4>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" id="ai-config-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- Informazioni Generali -->
+                        <div class="form-group">
+                            <label for="name">Nome Configurazione</label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                   placeholder="es. Ollama Llama3 - Principale">
+                            <div class="form-help">Un nome descrittivo per identificare questa configurazione</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="provider">Provider AI</label>
+                            <select class="form-control" id="provider" name="provider" required>
+                                <option value="">Seleziona un provider</option>
+                                <option value="ollama">Ollama (Locale)</option>
+                                <option value="openrouter">OpenRouter (Cloud)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Configurazione Ollama -->
+                        <div id="ollama-section" class="provider-section">
+                            <h5><i class="fas fa-server"></i> Configurazione Ollama</h5>
+                            
+                            <div class="form-group">
+                                <label for="ollama_url">URL Ollama</label>
+                                <input type="url" class="form-control" id="ollama_url" name="ollama_url"
+                                       value="http://192.168.129.14:11435" placeholder="http://192.168.129.14:11435">
+                                <div class="form-help">URL dell'istanza Ollama (include porta)</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="ollama_model">Modello</label>
+                                <select class="form-control" id="ollama_model" name="ollama_model">
+                                    <option value="">Seleziona un modello...</option>
+                                    {% for model in ollama_models %}
+                                    <option value="{{ model.name }}:{{ model.tag }}" 
+                                            data-size="{{ '%.1f'|format(model.size / 1024**3) }} GB">
+                                        {{ model.name }}:{{ model.tag }} 
+                                        ({{ '%.1f'|format(model.size / 1024**3) }} GB)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-help">Scegli un modello installato su Ollama</div>
+                                
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="test-ollama-connection">
+                                    <i class="fas fa-plug"></i> Testa Connessione
+                                </button>
+                                
+                                <div id="ollama-test-result" class="mt-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Configurazione OpenRouter -->
+                        <div id="openrouter-section" class="provider-section">
+                            <h5><i class="fas fa-cloud"></i> Configurazione OpenRouter</h5>
+                            
+                            <div class="form-group">
+                                <label for="openrouter_api_key">API Key</label>
+                                <input type="password" class="form-control" id="openrouter_api_key" name="openrouter_api_key"
+                                       placeholder="sk-or-...">
+                                <div class="form-help">
+                                    La tua API key di OpenRouter. 
+                                    <a href="https://openrouter.ai/keys" target="_blank">Ottieni qui</a>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="openrouter_model">Modello</label>
+                                <select class="form-control" id="openrouter_model" name="openrouter_model">
+                                    <option value="">Seleziona un modello...</option>
+                                    {% for model in openrouter_models %}
+                                    <option value="{{ model.model_id }}" 
+                                            data-context="{{ model.context_length }}"
+                                            data-free="{{ model.is_free }}"
+                                            data-description="{{ model.description }}">
+                                        {{ model.name }}
+                                        {% if model.is_free %}
+                                        <span class="badge bg-success">FREE</span>
+                                        {% endif %}
+                                        ({{ model.context_length }}K context)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-help">Scegli un modello OpenRouter. I modelli gratuiti hanno limitazioni di utilizzo.</div>
+                                
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="test-openrouter-connection">
+                                    <i class="fas fa-plug"></i> Testa API Key e Carica Modelli
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Parametri Generali -->
+                        <div class="mt-4">
+                            <h5>Parametri di Generazione</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="temperature">Temperature</label>
+                                        <input type="number" class="form-control" id="temperature" name="temperature"
+                                               min="0" max="2" step="0.1" value="0.7">
+                                        <div class="form-help">Creatività (0 = conservativo, 1 = bilanciato, 2 = creativo)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="max_tokens">Max Tokens</label>
+                                        <input type="number" class="form-control" id="max_tokens" name="max_tokens"
+                                               min="100" max="4000" value="1000">
+                                        <div class="form-help">Lunghezza massima della risposta</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="system_prompt">Prompt di Sistema</label>
+                                <textarea class="form-control" id="system_prompt" name="system_prompt" rows="4"
+                                          placeholder="Prompt opzionale per istruire l'AI...">Sei un assistente specializzato nell'etichettatura di testi educativi. Analizza ogni testo e assegna l'etichetta più appropriata dalla lista fornita. Sii preciso e coerente nelle tue scelte.</textarea>
+                                <div class="form-help">Istruzioni specifiche per guidare il comportamento dell'AI</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Opzioni -->
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Attiva questa configurazione
+                                </label>
+                                <div class="form-help">Se selezionato, questa diventerà la configurazione AI attiva</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pulsanti -->
+                        <div class="form-group mt-4">
+                            <button type="button" class="btn btn-outline-primary" id="test-config-btn">
+                                <i class="fas fa-check-circle"></i> Test Configurazione
+                                <div class="loading-spinner spinner-border spinner-border-sm" role="status" style="display: none;">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
+                            <button type="submit" class="btn btn-primary ml-2">
+                                <i class="fas fa-save"></i> Salva Configurazione
+                            </button>
+                            <a href="{{ url_for('admin.ai_configuration') }}" class="btn btn-secondary ml-2">
+                                <i class="fas fa-times"></i> Annulla
+                            </a>
+                        </div>
+                        
+                        <!-- Risultato Test -->
+                        <div id="test-result" class="test-result mt-3" style="display: none;"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const providerSelect = document.getElementById('provider');
+    const ollamaSection = document.getElementById('ollama-section');
+    const openrouterSection = document.getElementById('openrouter-section');
+    
+    // Gestione cambio provider
+    providerSelect.addEventListener('change', function() {
+        ollamaSection.classList.remove('active');
+        openrouterSection.classList.remove('active');
+        
+        if (this.value === 'ollama') {
+            ollamaSection.classList.add('active');
+        } else if (this.value === 'openrouter') {
+            openrouterSection.classList.add('active');
+        }
+    });
+    
+    // Test connessione Ollama
+    document.getElementById('test-ollama-connection').addEventListener('click', function() {
+        const url = document.getElementById('ollama_url').value;
+        if (!url) {
+            alert('Inserisci prima l\'URL di Ollama');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
+        
+        // Simula test connessione (implementare chiamata reale)
+        setTimeout(() => {
+            const modelsList = document.getElementById('ollama-models-list');
+            modelsList.innerHTML = `
+                <div class="model-option">
+                    <label><input type="radio" name="selected_model" value="llama3"> llama3</label>
+                </div>
+                <div class="model-option">
+                    <label><input type="radio" name="selected_model" value="mistral"> mistral</label>
+                </div>
+                <div class="model-option">
+                    <label><input type="radio" name="selected_model" value="gemma"> gemma</label>
+                </div>
+            `;
+            modelsList.style.display = 'block';
+            
+            // Gestisci selezione modello
+            modelsList.addEventListener('change', function(e) {
+                if (e.target.type === 'radio') {
+                    document.getElementById('ollama_model').value = e.target.value;
+                }
+            });
+            
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-check"></i> Connesso! Modelli caricati';
+            this.className = 'btn btn-sm btn-success mt-2';
+        }, 2000);
+    });
+    
+    // Test connessione OpenRouter
+    document.getElementById('test-openrouter-connection').addEventListener('click', function() {
+        const apiKey = document.getElementById('openrouter_api_key').value;
+        if (!apiKey) {
+            alert('Inserisci prima l\'API key');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
+        
+        // Simula test connessione (implementare chiamata reale)
+        setTimeout(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-check"></i> API Key valida!';
+            this.className = 'btn btn-sm btn-success mt-2';
+        }, 1500);
+    });
+    
+    // Test configurazione
+    document.getElementById('test-config-btn').addEventListener('click', function() {
+        const provider = document.getElementById('provider').value;
+        const spinner = this.querySelector('.loading-spinner');
+        const resultDiv = document.getElementById('test-result');
+        
+        // Validazione base
+        if (!provider) {
+            alert('Seleziona prima un provider');
+            return;
+        }
+        
+        let testData = { provider: provider };
+        
+        if (provider === 'ollama') {
+            const url = document.getElementById('ollama_url').value;
+            const model = document.getElementById('ollama_model').value;
+            
+            if (!url || !model) {
+                alert('Compila URL e modello per Ollama');
+                return;
+            }
+            
+            testData.ollama_url = url;
+            testData.ollama_model = model;
+            
+        } else if (provider === 'openrouter') {
+            const apiKey = document.getElementById('openrouter_api_key').value;
+            const model = document.getElementById('openrouter_model').value;
+            
+            if (!apiKey || !model) {
+                alert('Compila API key e modello per OpenRouter');
+                return;
+            }
+            
+            testData.openrouter_api_key = apiKey;
+            testData.openrouter_model = model;
+        }
+        
+        // Mostra spinner
+        spinner.style.display = 'inline-block';
+        this.disabled = true;
+        resultDiv.style.display = 'none';
+        
+        // Test di connessione
+        fetch('/admin/test-ai-config-preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `test-result ${data.success ? 'test-success' : 'test-error'}`;
+            resultDiv.textContent = data.message;
+            resultDiv.style.display = 'block';
+        })
+        .catch(error => {
+            resultDiv.className = 'test-result test-error';
+            resultDiv.textContent = 'Errore nella connessione: ' + error.message;
+            resultDiv.style.display = 'block';
+        })
+        .finally(() => {
+            spinner.style.display = 'none';
+            this.disabled = false;
+        });
+    });
+    
+    // Validazione form
+    document.getElementById('ai-config-form').addEventListener('submit', function(e) {
+        const provider = document.getElementById('provider').value;
+        
+        if (provider === 'ollama') {
+            const url = document.getElementById('ollama_url').value;
+            const model = document.getElementById('ollama_model').value;
+            
+            if (!url || !model) {
+                e.preventDefault();
+                alert('Compila tutti i campi per Ollama');
+                return;
+            }
+        } else if (provider === 'openrouter') {
+            const apiKey = document.getElementById('openrouter_api_key').value;
+            const model = document.getElementById('openrouter_model').value;
+            
+            if (!apiKey || !model) {
+                e.preventDefault();
+                alert('Compila tutti i campi per OpenRouter');
+                return;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

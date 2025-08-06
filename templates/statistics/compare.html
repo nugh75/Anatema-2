@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Confronto Annotatori{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Confronto tra Annotatori</h2>
+                <a href="{{ url_for('statistics.overview') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Torna alle Statistiche Generali
+                </a>
+            </div>
+
+            <!-- Selettore Utenti -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users"></i> Seleziona Annotatori da Confrontare
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="user1_id" class="form-label">Primo Annotatore</label>
+                            <select class="form-select" name="user1_id" id="user1_id" required>
+                                <option value="">Seleziona...</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user1 and user.id == user1.id %}selected{% endif %}>
+                                    {{ user.username }} ({{ user.annotation_count }} annotazioni)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="user2_id" class="form-label">Secondo Annotatore</label>
+                            <select class="form-select" name="user2_id" id="user2_id" required>
+                                <option value="">Seleziona...</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user2 and user.id == user2.id %}selected{% endif %}>
+                                    {{ user.username }} ({{ user.annotation_count }} annotazioni)
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-balance-scale"></i> Confronta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if user1 and user2 %}
+            <!-- Confronto Generale -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user"></i> {{ user1.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h3 class="text-primary">{{ comparison.user1_stats.total_annotations }}</h3>
+                                    <p class="mb-0">Annotazioni</p>
+                                </div>
+                                <div class="col-6">
+                                    <h3 class="text-primary">{{ comparison.user1_stats.unique_cells }}</h3>
+                                    <p class="mb-0">Celle</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-info">{{ comparison.user1_stats.unique_labels }}</h4>
+                                    <p class="mb-0">Etichette</p>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-success">{{ "%.1f"|format(comparison.user1_stats.avg_per_day) }}</h4>
+                                    <p class="mb-0">Media/Giorno</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user"></i> {{ user2.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h3 class="text-success">{{ comparison.user2_stats.total_annotations }}</h3>
+                                    <p class="mb-0">Annotazioni</p>
+                                </div>
+                                <div class="col-6">
+                                    <h3 class="text-success">{{ comparison.user2_stats.unique_cells }}</h3>
+                                    <p class="mb-0">Celle</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-info">{{ comparison.user2_stats.unique_labels }}</h4>
+                                    <p class="mb-0">Etichette</p>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-warning">{{ "%.1f"|format(comparison.user2_stats.avg_per_day) }}</h4>
+                                    <p class="mb-0">Media/Giorno</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordo Inter-Annotatore -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-handshake"></i> Accordo Inter-Annotatore
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center mb-3">
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-primary">{{ comparison.agreement.common_cells }}</h3>
+                                        <p class="mb-0">Celle in Comune</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-success">{{ comparison.agreement.exact_matches }}</h3>
+                                        <p class="mb-0">Accordi Esatti</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-info">{{ "%.1f"|format(comparison.agreement.agreement_percentage) }}%</h3>
+                                        <p class="mb-0">% Accordo</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-warning">{{ "%.3f"|format(comparison.agreement.kappa) }}</h3>
+                                        <p class="mb-0">Kappa di Cohen</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if comparison.agreement.kappa >= 0.8 %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Accordo molto elevato (κ ≥ 0.8)
+                            </div>
+                            {% elif comparison.agreement.kappa >= 0.6 %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Accordo buono (0.6 ≤ κ < 0.8)
+                            </div>
+                            {% elif comparison.agreement.kappa >= 0.4 %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Accordo moderato (0.4 ≤ κ < 0.6)
+                            </div>
+                            {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle"></i> Accordo basso (κ < 0.4)
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafici Comparativi -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-bar"></i> Confronto Etichette
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="labelsComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-line"></i> Attività nel Tempo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="timelineComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabella Dettagli Conflitti -->
+            {% if comparison.conflicts %}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-exclamation-triangle text-warning"></i> Conflitti di Annotazione
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Cella</th>
+                                            <th>{{ user1.username }}</th>
+                                            <th>{{ user2.username }}</th>
+                                            <th>Categoria</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for conflict in comparison.conflicts %}
+                                        <tr>
+                                            <td><code>{{ conflict.cell_id }}</code></td>
+                                            <td>
+                                                {% for label in conflict.user1_labels %}
+                                                <span class="badge me-1" style="background-color: {{ label.color }}">
+                                                    {{ label.name }}
+                                                </span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {% for label in conflict.user2_labels %}
+                                                <span class="badge me-1" style="background-color: {{ label.color }}">
+                                                    {{ label.name }}
+                                                </span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>{{ conflict.category }}</td>
+                                            <td>
+                                                <a href="{{ url_for('annotation.annotate_cell', cell_id=conflict.cell_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="fas fa-edit"></i> Rivedi
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Confronto per Quesito -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-question-circle"></i> Confronto per Quesito
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Quesito</th>
+                                            <th>Celle Totali</th>
+                                            <th>{{ user1.username }}</th>
+                                            <th>{{ user2.username }}</th>
+                                            <th>Celle in Comune</th>
+                                            <th>Accordi</th>
+                                            <th>Conflitti</th>
+                                            <th>% Accordo</th>
+                                            <th>Etichette più usate ({{ user1.username }})</th>
+                                            <th>Etichette più usate ({{ user2.username }})</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for question in comparison.question_comparison %}
+                                        <tr>
+                                            <td>{{ question.question }}</td>
+                                            <td>{{ question.total_cells }}</td>
+                                            <td>{{ question.user1_annotations }}</td>
+                                            <td>{{ question.user2_annotations }}</td>
+                                            <td>{{ question.common_cells }}</td>
+                                            <td>{{ question.agreement_count }}</td>
+                                            <td>{{ question.conflicts_count }}</td>
+                                            <td>{{ "%.1f"|format(question.agreement_percentage) }}%</td>
+                                            <td>
+                                                {% for label in question.top_labels_user1 %}
+                                                <span class="badge me-1" style="background-color: {{ label.color }}">
+                                                    {{ label.name }} ({{ label.count }})
+                                                </span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {% for label in question.top_labels_user2 %}
+                                                <span class="badge me-1" style="background-color: {{ label.color }}">
+                                                    {{ label.name }} ({{ label.count }})
+                                                </span>
+                                                {% endfor %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabella Etichette Comuni e Specifiche -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-intersection"></i> Etichette in Comune
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if comparison.common_labels %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Etichetta</th>
+                                            <th class="text-center">{{ user1.username }}</th>
+                                            <th class="text-center">{{ user2.username }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for label in comparison.common_labels %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ label.color }}">
+                                                    {{ label.name }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">{{ label.user1_count }}</td>
+                                            <td class="text-center">{{ label.user2_count }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">Nessuna etichetta in comune trovata.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user-tag"></i> Etichette Specifiche
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="text-primary">Solo {{ user1.username }}:</h6>
+                            {% if comparison.user1_only_labels %}
+                                {% for label in comparison.user1_only_labels %}
+                                <span class="badge me-1 mb-1" style="background-color: {{ label.color }}">
+                                    {{ label.name }} ({{ label.count }})
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">Nessuna</p>
+                            {% endif %}
+
+                            <h6 class="text-success mt-3">Solo {{ user2.username }}:</h6>
+                            {% if comparison.user2_only_labels %}
+                                {% for label in comparison.user2_only_labels %}
+                                <span class="badge me-1 mb-1" style="background-color: {{ label.color }}">
+                                    {{ label.name }} ({{ label.count }})
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">Nessuna</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if user1 and user2 %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Grafico confronto etichette
+    const labelsCtx = document.getElementById('labelsComparisonChart').getContext('2d');
+    new Chart(labelsCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ comparison.chart_data.label_names | tojson }},
+            datasets: [{
+                label: '{{ user1.username }}',
+                data: {{ comparison.chart_data.user1_counts | tojson }},
+                backgroundColor: 'rgba(0, 123, 255, 0.8)',
+                borderColor: 'rgba(0, 123, 255, 1)',
+                borderWidth: 1
+            }, {
+                label: '{{ user2.username }}',
+                data: {{ comparison.chart_data.user2_counts | tojson }},
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // Grafico timeline confronto
+    const timelineCtx = document.getElementById('timelineComparisonChart').getContext('2d');
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: {{ comparison.timeline_data.dates | tojson }},
+            datasets: [{
+                label: '{{ user1.username }}',
+                data: {{ comparison.timeline_data.user1_counts | tojson }},
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.1,
+                fill: false
+            }, {
+                label: '{{ user2.username }}',
+                data: {{ comparison.timeline_data.user2_counts | tojson }},
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Template AI - Stili di Analisi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="bi bi-file-text me-2 text-primary"></i>Template AI - Stili di Analisi
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Gestisci i template di prompt per l'analisi automatica delle risposte
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                        <i class="bi bi-plus-circle me-1"></i>Nuovo Template
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-text display-4 mb-2"></i>
+                    <h4 id="total-templates">{{ templates|length }}</h4>
+                    <p class="mb-0">Template Totali</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle display-4 mb-2"></i>
+                    <h4 id="active-templates">{{ active_count }}</h4>
+                    <p class="mb-0">Template Attivi</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-tags display-4 mb-2"></i>
+                    <h4 id="categories-count">{{ categories|length }}</h4>
+                    <p class="mb-0">Categorie</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up display-4 mb-2"></i>
+                    <h4 id="usage-count">-</h4>
+                    <p class="mb-0">Utilizzi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtri -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Filtra per Categoria</label>
+                            <select id="category-filter" class="form-select">
+                                <option value="">Tutte le categorie</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stato</label>
+                            <select id="status-filter" class="form-select">
+                                <option value="">Tutti</option>
+                                <option value="active">Solo Attivi</option>
+                                <option value="inactive">Solo Inattivi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ricerca</label>
+                            <input type="text" id="search-filter" class="form-control" placeholder="Cerca per nome...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Template -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list me-2"></i>Template Disponibili
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="templates-container">
+                        {% for template in templates %}
+                        <div class="col-lg-6 col-xl-4 mb-4 template-card" 
+                             data-category="{{ template.category }}" 
+                             data-status="{{ 'active' if template.is_active else 'inactive' }}"
+                             data-name="{{ template.name.lower() }}">
+                            <div class="card h-100 border-start border-4 {{ 'border-success' if template.is_active else 'border-secondary' }}">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0 fw-bold">{{ template.name }}</h6>
+                                        <small class="text-muted">{{ template.category }}</small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        {% if template.is_active %}
+                                        <span class="badge bg-success">Attivo</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inattivo</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>Descrizione:</strong>
+                                        <p class="text-muted small">{{ template.description or 'Nessuna descrizione disponibile' }}</p>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <strong>Prompt Template:</strong>
+                                        <div class="bg-light p-2 rounded small font-monospace" style="max-height: 150px; overflow-y: auto;">
+                                            {{ template.template_text[:200] }}{% if template.template_text|length > 200 %}...{% endif %}
+                                        </div>
+                                    </div>
+
+                                    {% if template.created_at %}
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-calendar me-1"></i>
+                                            Creato: {{ template.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewTemplate({{ template.id }})">
+                                            <i class="bi bi-eye me-1"></i>Visualizza
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editTemplate({{ template.id }})">
+                                            <i class="bi bi-pencil me-1"></i>Modifica
+                                        </button>
+                                        {% if template.is_active %}
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleTemplate({{ template.id }}, false)">
+                                            <i class="bi bi-pause me-1"></i>Disattiva
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-outline-success" onclick="toggleTemplate({{ template.id }}, true)">
+                                            <i class="bi bi-play me-1"></i>Attiva
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Creare Nuovo Template -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>Nuovo Template AI
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTemplateForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Template</label>
+                            <input type="text" class="form-control" id="template-name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" id="template-category" required>
+                                <option value="">Seleziona categoria...</option>
+                                <option value="Sentiment Analysis">Sentiment Analysis</option>
+                                <option value="Usage Patterns">Usage Patterns</option>
+                                <option value="Benefits Analysis">Benefits Analysis</option>
+                                <option value="Ethical Concerns">Ethical Concerns</option>
+                                <option value="Educational Experience">Educational Experience</option>
+                                <option value="Future Perspectives">Future Perspectives</option>
+                                <option value="Content Classification">Content Classification</option>
+                                <option value="Quality Assessment">Quality Assessment</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="template-description" rows="2" placeholder="Descrivi lo scopo di questo template..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Template di Prompt</label>
+                            <textarea class="form-control" id="template-text" rows="10" required 
+                                      placeholder="Inserisci il prompt template. Usa {text_content} per il contenuto della cella e {labels} per le etichette disponibili..."></textarea>
+                            <div class="form-text">
+                                Variabili disponibili: {text_content}, {labels}, {question}, {file_name}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="template-active" checked>
+                                <label class="form-check-label" for="template-active">
+                                    Template attivo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x me-1"></i>Annulla
+                </button>
+                <button type="button" class="btn btn-success" onclick="createTemplate()">
+                    <i class="bi bi-save me-1"></i>Crea Template
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Visualizzare Template -->
+<div class="modal fade" id="viewTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-eye me-2"></i>Visualizza Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="template-details"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x me-1"></i>Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestione filtri
+    const categoryFilter = document.getElementById('category-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const searchFilter = document.getElementById('search-filter');
+    
+    [categoryFilter, statusFilter, searchFilter].forEach(filter => {
+        filter.addEventListener('change', applyFilters);
+        filter.addEventListener('keyup', applyFilters);
+    });
+    
+    function applyFilters() {
+        const categoryValue = categoryFilter.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const searchValue = searchFilter.value.toLowerCase();
+        
+        const cards = document.querySelectorAll('.template-card');
+        
+        cards.forEach(card => {
+            const category = card.dataset.category.toLowerCase();
+            const status = card.dataset.status;
+            const name = card.dataset.name;
+            
+            let show = true;
+            
+            if (categoryValue && !category.includes(categoryValue)) show = false;
+            if (statusValue && status !== statusValue) show = false;
+            if (searchValue && !name.includes(searchValue)) show = false;
+            
+            card.style.display = show ? 'block' : 'none';
+        });
+    }
+});
+
+// Funzioni per gestione template
+async function createTemplate() {
+    const formData = {
+        name: document.getElementById('template-name').value,
+        category: document.getElementById('template-category').value,
+        description: document.getElementById('template-description').value,
+        template_text: document.getElementById('template-text').value,
+        is_active: document.getElementById('template-active').checked
+    };
+    
+    if (!formData.name || !formData.category || !formData.template_text) {
+        alert('Compila tutti i campi obbligatori');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/ai/templates/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Template creato con successo!');
+            location.reload();
+        } else {
+            alert('❌ Errore: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('❌ Errore nella richiesta');
+    }
+}
+
+async function viewTemplate(templateId) {
+    try {
+        const response = await fetch(`/ai/templates/${templateId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const template = data.template;
+            document.getElementById('template-details').innerHTML = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <strong>Nome:</strong> ${template.name}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Categoria:</strong> ${template.category}
+                    </div>
+                    <div class="col-12">
+                        <strong>Descrizione:</strong>
+                        <p class="text-muted">${template.description || 'Nessuna descrizione'}</p>
+                    </div>
+                    <div class="col-12">
+                        <strong>Template di Prompt:</strong>
+                        <pre class="bg-light p-3 rounded">${template.template_text}</pre>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Stato:</strong> 
+                        <span class="badge ${template.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${template.is_active ? 'Attivo' : 'Inattivo'}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Creato:</strong> ${new Date(template.created_at).toLocaleString()}
+                    </div>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('viewTemplateModal'));
+            modal.show();
+        } else {
+            alert('❌ Errore nel caricamento del template');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('❌ Errore nella richiesta');
+    }
+}
+
+async function toggleTemplate(templateId, activate) {
+    try {
+        const response = await fetch(`/ai/templates/${templateId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_active: activate })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('❌ Errore: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('❌ Errore nella richiesta');
+    }
+}
+
+function editTemplate(templateId) {
+    // Implementare modal di modifica se necessario
+    alert('Funzione di modifica in sviluppo');
+}
+</script>
+{% endblock %}

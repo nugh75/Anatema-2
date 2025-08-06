@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche Annotazioni -Anatema{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-graph-up me-2"></i>Statistiche Annotazioni</h1>
+            <div>
+                <a href="{{ url_for('statistics.compare') }}" class="btn btn-primary">
+                    <i class="bi bi-people me-1"></i>Confronta Annotatori
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche generali -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-tags display-4 text-primary mb-2"></i>
+                <h3 class="text-primary">{{ total_annotations }}</h3>
+                <p class="text-muted mb-0">Annotazioni Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-people display-4 text-success mb-2"></i>
+                <h3 class="text-success">{{ total_users }}</h3>
+                <p class="text-muted mb-0">Annotatori</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-files display-4 text-warning mb-2"></i>
+                <h3 class="text-warning">{{ total_documents }}</h3>
+                <p class="text-muted mb-0">Documenti Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-bookmark display-4 text-info mb-2"></i>
+                <h3 class="text-info">{{ total_labels }}</h3>
+                <p class="text-muted mb-0">Etichette</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche dettagliate per tipo -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-file-earmark-excel me-2"></i>File Excel</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">{{ total_excel_files }}</h4>
+                        <small class="text-muted">File Caricati</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ total_cell_annotations }}</h4>
+                        <small class="text-muted">Annotazioni</small>
+                    </div>
+                </div>
+                <div class="row text-center mt-2">
+                    <div class="col-12">
+                        <span class="text-muted">{{ total_cells }} celle totali</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-file-text me-2"></i>Documenti di Testo</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">{{ total_text_documents }}</h4>
+                        <small class="text-muted">Documenti</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ total_text_annotations }}</h4>
+                        <small class="text-muted">Annotazioni</small>
+                    </div>
+                </div>
+                <div class="row text-center mt-2">
+                    <div class="col-12">
+                        <a href="{{ url_for('text_documents.list_documents') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Visualizza
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart me-2"></i>Annotazioni per Utente</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="userAnnotationsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-pie-chart me-2"></i>Utilizzo Etichette</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="labelsUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top annotatori -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-trophy me-2"></i>Top Annotatori</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Posizione</th>
+                                <th>Annotatore</th>
+                                <th>Annotazioni</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for annotator in top_annotators %}
+                            <tr>
+                                <td>
+                                    {% if loop.index == 1 %}
+                                        <i class="bi bi-trophy-fill text-warning"></i>
+                                    {% elif loop.index == 2 %}
+                                        <i class="bi bi-award-fill text-secondary"></i>
+                                    {% elif loop.index == 3 %}
+                                        <i class="bi bi-award text-warning"></i>
+                                    {% else %}
+                                        {{ loop.index }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ annotator.username }}</strong>
+                                    {% if annotator.id == current_user.id %}
+                                        <span class="badge bg-primary">Tu</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ annotator.annotation_count }}</td>
+                                <td>
+                                    <a href="{{ url_for('statistics.user_detail', user_id=annotator.id) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i>Dettagli
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-tags me-2"></i>Etichette Più Usate</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Etichetta</th>
+                                <th>Utilizzi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for label in top_labels %}
+                            <tr>
+                                <td>
+                                    <span class="badge me-2" style="background-color: {{ label.color }};">&nbsp;</span>
+                                    {{ label.name }}
+                                </td>
+                                <td>{{ label.usage_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche per File -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-files me-2"></i>Statistiche per Documento</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Tipo</th>
+                                <th>Unità</th>
+                                <th>Annotazioni</th>
+                                <th>Annotatori</th>
+                                <th>Progresso</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for file in file_stats %}
+                            <tr>
+                                <td>
+                                    {% if file.type == 'excel' %}
+                                        <i class="bi bi-file-earmark-excel text-success me-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-text text-primary me-1"></i>
+                                    {% endif %}
+                                    <strong>{{ file.filename }}</strong>
+                                </td>
+                                <td>
+                                    {% if file.type == 'excel' %}
+                                        <span class="badge bg-success">Excel</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Testo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if file.type == 'excel' %}
+                                        {{ file.total_cells }} celle
+                                    {% else %}
+                                        1 documento
+                                    {% endif %}
+                                </td>
+                                <td>{{ file.total_annotations }}</td>
+                                <td>{{ file.annotator_count }}</td>
+                                <td>
+                                    {% if file.total_cells > 0 and file.type == 'excel' %}
+                                    <div class="progress">
+                                        {% set progress = (file.total_annotations / file.total_cells * 100) %}
+                                        <div class="progress-bar" role="progressbar" style="width: {{ progress }}%">
+                                            {{ "%.1f"|format(progress) }}%
+                                        </div>
+                                    </div>
+                                    {% elif file.type == 'text' %}
+                                    <span class="badge bg-info">{{ file.total_annotations }} annotazioni</span>
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if file.type == 'excel' %}
+                                        <a href="{{ url_for('statistics.file_detail', file_id=file.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Dettagli
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('text_documents.annotations', document_id=file.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Annotazioni
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Grafico annotazioni per utente
+    fetch('/statistics/api/chart_data/annotations_per_user')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('userAnnotationsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Annotazioni',
+                        data: data.values,
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+
+    // Grafico utilizzo etichette
+    fetch('/statistics/api/chart_data/labels_usage')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('labelsUsageChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.values,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#FF9F40',
+                            '#4BC0C0', '#9966FF', '#FF6384', '#FF9F40',
+                            '#4BC0C0', '#36A2EB', '#FFCE56', '#9966FF',
+                            '#FF6384', '#36A2EB', '#FFCE56'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        });
+});
+</script>
+{% endblock %}

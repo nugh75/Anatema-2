@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche File - {{ file.filename }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Statistiche File: {{ file.filename }}</h2>
+                <div>
+                    <a href="{{ url_for('statistics.overview') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna alle Statistiche
+                    </a>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.overview') }}">Statistiche</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ file.filename }}</li>
+                </ol>
+            </nav>
+
+            <!-- Statistiche Generali -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">{{ total_cells }}</h3>
+                            <p class="mb-0">Celle Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">{{ annotated_cells }}</h3>
+                            <p class="mb-0">Celle Annotate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <h3 class="text-info">{{ "%.1f"|format((annotated_cells / total_cells * 100) if total_cells > 0 else 0) }}%</h3>
+                            <p class="mb-0">Progresso</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">{{ user_stats|length }}</h3>
+                            <p class="mb-0">Annotatori</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche per Quesito -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-question-circle me-2"></i>Statistiche per Quesito
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Quesito</th>
+                                            <th>Celle Totali</th>
+                                            <th>Annotazioni</th>
+                                            <th>Annotatori</th>
+                                            <th>Progresso</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for question in question_stats %}
+                                        <tr>
+                                            <td><strong>{{ question.column_name }}</strong></td>
+                                            <td>{{ question.total_cells }}</td>
+                                            <td>{{ question.total_annotations }}</td>
+                                            <td>{{ question.annotator_count }}</td>
+                                            <td>
+                                                <div class="progress">
+                                                    {% set progress = (question.total_annotations / question.total_cells * 100) if question.total_cells > 0 else 0 %}
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ progress }}%">
+                                                        {{ "%.1f"|format(progress) }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('statistics.question_detail', file_id=file.id, question=question.column_name) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> Dettagli
+                                                </a>
+                                                <a href="{{ url_for('statistics.question_compare', file_id=file.id, question=question.column_name) }}" 
+                                                   class="btn btn-sm btn-outline-success">
+                                                    <i class="bi bi-people"></i> Confronta
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Annotatori -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-people me-2"></i>Annotatori
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Annotatore</th>
+                                            <th>Annotazioni</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in user_stats %}
+                                        <tr>
+                                            <td>{{ user.username }}</td>
+                                            <td>{{ user.annotation_count }}</td>
+                                            <td>
+                                                <a href="{{ url_for('statistics.user_detail', user_id=user.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> Dettagli
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-tags me-2"></i>Etichette Più Utilizzate
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Etichetta</th>
+                                            <th>Categoria</th>
+                                            <th>Utilizzi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for label in label_stats %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ label.color }}">
+                                                    {{ label.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ label.category_name or 'Senza categoria' }}</td>
+                                            <td>{{ label.usage_count }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche Annotazioni -Anatema{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+    .chart-container {
+        min-height: 400px;
+    }
+    .file-card {
+        transition: transform 0.2s;
+    }
+    .file-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .completion-badge {
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-graph-up me-2"></i>Statistiche Annotazioni
+        </h2>
+        <p class="text-muted">Analisi dettagliata del processo di etichettatura tematica</p>
+    </div>
+</div>
+
+<!-- Panoramica generale -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-grid-3x3-gap display-4 mb-3"></i>
+                <h3>{{ total_cells }}</h3>
+                <p class="mb-0">Celle Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle display-4 mb-3"></i>
+                <h3>{{ annotated_cells }}</h3>
+                <p class="mb-0">Celle Annotate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-files display-4 mb-3"></i>
+                <h3>{{ file_label_stats|length }}</h3>
+                <p class="mb-0">File Caricati</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-percent display-4 mb-3"></i>
+                <h3>{{ "%.1f"|format((annotated_cells / total_cells * 100) if total_cells > 0 else 0) }}%</h3>
+                <p class="mb-0">Completamento</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafici Panoramica -->
+{% if overview_charts %}
+<div class="row mb-4">
+    {% if overview_charts.completion_overview %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Completamento per File
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="completion-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if overview_charts.all_labels_pie %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Distribuzione Generale Etichette
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="all-labels-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+
+<div class="row mb-4">
+    {% if user_stats_chart %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>Contributi per Utente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="user-stats-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if label_stats_chart %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-star me-2"></i>Etichette Più Utilizzate
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="label-stats-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if file_progress_chart %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>Progresso per File
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="file-progress-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Statistiche Dettagliate per File -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-files me-2"></i>Statistiche per File
+                </h5>
+                <p class="text-muted mb-0">Analisi dettagliata delle etichette per ogni file caricato</p>
+            </div>
+            <div class="card-body">
+                {% if file_label_stats %}
+                <div class="row">
+                    {% for file_stat in file_label_stats %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card file-card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>
+                                    {{ file_stat.file.original_filename[:40] }}{% if file_stat.file.original_filename|length > 40 %}...{% endif %}
+                                </h6>
+                                <span class="badge completion-badge {% if file_stat.completion_rate >= 75 %}bg-success{% elif file_stat.completion_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ file_stat.completion_rate }}%
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <!-- Statistiche base -->
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="h5 mb-0">{{ file_stat.total_cells }}</div>
+                                            <small class="text-muted">Celle Totali</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center">
+                                            <div class="h5 mb-0">{{ file_stat.annotated_cells }}</div>
+                                            <small class="text-muted">Annotate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress bar -->
+                                <div class="progress mb-3" style="height: 8px;">
+                                    <div class="progress-bar {% if file_stat.completion_rate >= 75 %}bg-success{% elif file_stat.completion_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         style="width: {{ file_stat.completion_rate }}%"></div>
+                                </div>
+                                
+                                <!-- Top etichette -->
+                                {% if file_stat.label_stats %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Top Etichette:</h6>
+                                    {% for label in file_stat.label_stats[:5] %}
+                                    <span class="badge me-1 mb-1" style="background-color: {{ label.color }}; color: white;">
+                                        {{ label.name }} ({{ label.count }})
+                                    </span>
+                                    {% endfor %}
+                                    {% if file_stat.label_stats|length > 5 %}
+                                    <span class="text-muted">... e {{ file_stat.label_stats|length - 5 }} altre</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Contributori -->
+                                {% if file_stat.contributors %}
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">Contributori:</h6>
+                                    {% for contributor in file_stat.contributors[:3] %}
+                                    <small class="badge bg-secondary me-1">{{ contributor.username }} ({{ contributor.count }})</small>
+                                    {% endfor %}
+                                    {% if file_stat.contributors|length > 3 %}
+                                    <small class="text-muted">+{{ file_stat.contributors|length - 3 }}</small>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Grafici -->
+                                {% if file_stat.charts.labels_pie %}
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <div id="file-labels-{{ file_stat.file.id }}" style="height: 300px;"></div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Link per dettagli -->
+                                <div class="text-center">
+                                    <a href="{{ url_for('annotation.file_statistics', file_id=file_stat.file.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-zoom-in me-1"></i>Dettagli
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox display-4 mb-3"></i>
+                    <p>Nessun file con annotazioni trovato</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Azioni rapide -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="mb-3">
+                    <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                </h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('annotation.browse_annotations') }}" class="btn btn-primary">
+                        <i class="bi bi-pencil-square me-1"></i>Continua Annotazione
+                    </a>
+                    <a href="{{ url_for('labels.list_labels') }}" class="btn btn-info">
+                        <i class="bi bi-tags me-1"></i>Gestisci Etichette
+                    </a>
+                    <a href="{{ url_for('excel.upload') }}" class="btn btn-success">
+                        <i class="bi bi-cloud-upload me-1"></i>Carica Nuovo File
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i>Stampa Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Anima le progress bar esistenti
+    const progressBars = document.querySelectorAll('.progress-bar[data-animate]');
+    progressBars.forEach(bar => {
+      const targetWidth = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.transition = 'width 1s ease-in-out';
+        bar.style.width = targetWidth;
+      }, 200);
+    });
+
+    // Funzione generica per renderizzare i grafici
+    function renderPlotlyChart(elementId, chartDataJson) {
+        if (chartDataJson && chartDataJson.trim()) { // Controlla che non sia vuoto o solo spazi bianchi
+            try {
+                const chartData = JSON.parse(chartDataJson);
+                Plotly.newPlot(elementId, chartData.data, chartData.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            } catch (e) {
+                console.error("Errore nel parsing dei dati del grafico per l'elemento " + elementId + ":", e, "Dati ricevuti:", chartDataJson);
+            }
+        } else {
+            console.warn("Nessun dato del grafico per l'elemento " + elementId);
+        }
+    }
+
+    // Renderizza i grafici di panoramica
+    renderPlotlyChart('completion-chart', `{{ overview_charts.completion_overview|safe }}`);
+    renderPlotlyChart('all-labels-chart', `{{ overview_charts.all_labels_pie|safe }}`);
+    
+    // Renderizza i nuovi grafici
+    renderPlotlyChart('user-stats-chart', `{{ user_stats_chart|safe }}`);
+    renderPlotlyChart('label-stats-chart', `{{ label_stats_chart|safe }}`);
+    renderPlotlyChart('file-progress-chart', `{{ file_progress_chart|safe }}`);
+    
+    // Renderizza i grafici per file individuali
+    {% for file_stat in file_label_stats %}
+    {% if file_stat.charts.labels_pie %}
+    renderPlotlyChart('file-labels-{{ file_stat.file.id }}', `{{ file_stat.charts.labels_pie|safe }}`);
+    {% endif %}
+    {% endfor %}
+
+    // Aggiorna le statistiche ogni 30 secondi (opzionale)
+    // setInterval(() => {
+    //     location.reload();
+    // }, 30000);
+});
+
+// Stili per la stampa
+const printStyles = `
+    @media print {
+        .navbar, .btn, .card-footer { display: none !important; }
+        .card { border: 1px solid #000 !important; }
+        body { background: white !important; }
+        .chart-container { height: 300px !important; }
+    }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}

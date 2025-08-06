@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Panoramica Domande - {{ excel_file.original_filename }} -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>
+                    <i class="bi bi-grid-3x3-gap me-2"></i>Panoramica Domande
+                </h2>
+                <p class="text-muted mb-0">
+                    File: {{ excel_file.original_filename }}
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('excel.view_file', file_id=excel_file.id) }}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left me-1"></i>Torna al File
+                </a>
+                <a href="{{ url_for('excel.view_file', file_id=excel_file.id, view='questions') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-list-ul me-1"></i>Vista Quesiti
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche generali -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-question-circle display-4 mb-2"></i>
+                <h4>{{ questions_stats|length }}</h4>
+                <p class="mb-0">Domande Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-chat-text display-4 mb-2"></i>
+                <h4>{{ questions_stats|sum(attribute='total_responses') }}</h4>
+                <p class="mb-0">Risposte Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-pencil-square display-4 mb-2"></i>
+                <h4>{{ questions_stats|sum(attribute='annotated_responses') }}</h4>
+                <p class="mb-0">Annotazioni Totali</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Azioni rapide -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('labels.create_label') }}" class="btn btn-info">
+                        <i class="bi bi-plus-circle me-1"></i>Crea Nuova Etichetta
+                    </a>
+                    <a href="{{ url_for('statistics.overview') }}" class="btn btn-warning">
+                        <i class="bi bi-graph-up me-1"></i>Vedi Statistiche
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista delle domande -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-check me-2"></i>Tutte le Domande
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if questions_stats %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 45%;">Domanda</th>
+                                <th class="text-center" style="width: 15%;">Risposte</th>
+                                <th class="text-center" style="width: 15%;">Annotate</th>
+                                <th class="text-center" style="width: 10%;">Progresso</th>
+                                <th class="text-center" style="width: 10%;">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for question_name, total_responses, annotated_responses in questions_stats %}
+                            {% set progress = (annotated_responses / total_responses * 100) if total_responses > 0 else 0 %}
+                            <tr>
+                                <td class="text-center fw-bold text-muted">
+                                    {{ loop.index }}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-question-circle me-2 text-primary"></i>
+                                        <div>
+                                            <strong>{{ question_name }}</strong>
+                                            {% if progress == 100 %}
+                                            <span class="badge bg-success ms-2">Completata</span>
+                                            {% elif progress > 0 %}
+                                            <span class="badge bg-warning ms-2">In Corso</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary ms-2">Non Iniziata</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ total_responses }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ annotated_responses }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if progress == 100 %}bg-success{% elif progress > 50 %}bg-info{% elif progress > 0 %}bg-warning{% else %}bg-secondary{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ progress }}%;" 
+                                             aria-valuenow="{{ progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ "%.0f"|format(progress) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('excel.view_question', file_id=excel_file.id, question_name=question_name) }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Visualizza risposte">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-question-circle display-4 text-muted mb-3"></i>
+                    <h6 class="text-muted">Nessuna domanda trovata</h6>
+                    <p class="text-muted">Il file non contiene colonne con intestazioni valide</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Riepilogo statistiche -->
+{% if questions_stats %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Riepilogo Progresso
+                </h5>
+            </div>
+            <div class="card-body">
+                {% set total_responses = questions_stats|sum(attribute='total_responses') %}
+                {% set total_annotated = questions_stats|sum(attribute='annotated_responses') %}
+                {% set overall_progress = (total_annotated / total_responses * 100) if total_responses > 0 else 0 %}
+                
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h4 class="text-primary">{{ questions_stats|length }}</h4>
+                        <p class="text-muted mb-0">Domande</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-info">{{ total_responses }}</h4>
+                        <p class="text-muted mb-0">Risposte</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-success">{{ total_annotated }}</h4>
+                        <p class="text-muted mb-0">Annotate</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-warning">{{ "%.1f"|format(overall_progress) }}%</h4>
+                        <p class="text-muted mb-0">Completamento</p>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-gradient" 
+                             role="progressbar" 
+                             style="width: {{ overall_progress }}%;" 
+                             aria-valuenow="{{ overall_progress }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            Progresso Generale: {{ "%.1f"|format(overall_progress) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+.progress {
+    background-color: #f8f9fa;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+}
+
+.btn-group .btn:not(:last-child) {
+    margin-right: 2px;
+}
+</style>
+{% endblock %}

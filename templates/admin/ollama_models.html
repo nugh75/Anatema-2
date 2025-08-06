@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Modelli Ollama{% endblock %}
+
+{% block extra_css %}
+<style>
+.model-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.model-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.model-header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+
+.model-body {
+    padding: 15px;
+}
+
+.model-installed {
+    border-color: #28a745;
+}
+
+.model-installed .model-header {
+    background-color: #d4edda;
+}
+
+.model-available {
+    border-color: #6c757d;
+}
+
+.size-badge {
+    background-color: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.progress-container {
+    display: none;
+}
+
+.loading-spinner {
+    width: 1rem;
+    height: 1rem;
+}
+
+.test-result {
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.test-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+    margin-top: 10px;
+}
+
+.search-box {
+    margin-bottom: 20px;
+}
+
+.model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 15px;
+}
+
+.tab-content {
+    margin-top: 20px;
+}
+
+.model-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.connection-status {
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.status-connected {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-disconnected {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-download"></i> Gestione Modelli Ollama</h2>
+                <a href="{{ url_for('admin.ai_configuration') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Torna alla Configurazione AI
+                </a>
+            </div>
+
+            <!-- Stato Connessione -->
+            <div id="connection-status" class="connection-status">
+                <i class="fas fa-spinner fa-spin"></i> Verificando connessione a {{ ollama_url }}...
+            </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-toggle="tab" href="#installed-tab" role="tab">
+                        <i class="fas fa-check-circle"></i> 
+                        Modelli Installati ({{ installed_models|length }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#available-tab" role="tab">
+                        <i class="fas fa-cloud-download-alt"></i> 
+                        Modelli Disponibili
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Modelli Installati -->
+                <div class="tab-pane fade show active" id="installed-tab" role="tabpanel">
+                    {% if installed_models %}
+                        <div class="model-grid">
+                            {% for model in installed_models %}
+                            <div class="model-card model-installed">
+                                <div class="model-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">{{ model.name }}:{{ model.tag }}</h5>
+                                        <span class="size-badge">{{ model.size or 'N/A' }}</span>
+                                    </div>
+                                </div>
+                                <div class="model-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar"></i> 
+                                            Installato: {{ model.modified_at.strftime('%d/%m/%Y %H:%M') if model.modified_at }}
+                                        </small>
+                                        {% if model.digest %}
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-fingerprint"></i> 
+                                            Digest: {{ model.digest[:12] }}...
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="model-actions">
+                                        <button class="btn btn-sm btn-outline-primary test-model-btn mr-2" 
+                                                data-model="{{ model.name }}:{{ model.tag }}">
+                                            <i class="fas fa-check-circle"></i> Test
+                                            <div class="loading-spinner spinner-border spinner-border-sm" role="status" style="display: none;">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-model-btn" 
+                                                data-model="{{ model.name }}:{{ model.tag }}">
+                                            <i class="fas fa-trash"></i> Elimina
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info model-info-btn" 
+                                                data-model="{{ model.name }}:{{ model.tag }}">
+                                            <i class="fas fa-info-circle"></i> Info
+                                        </button>
+                                    </div>
+                                    <div id="test-result-{{ (model.name + ':' + model.tag)|replace(':', '-')|replace('/', '-') }}" class="test-result mt-2" style="display: none;"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i>
+                            Nessun modello installato. Vai alla tab "Modelli Disponibili" per scaricare un modello.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Modelli Disponibili -->
+                <div class="tab-pane fade" id="available-tab" role="tabpanel">
+                    <div class="search-box">
+                        <input type="text" id="model-search" class="form-control" 
+                               placeholder="Cerca modelli... (es. llama, mistral, gemma)">
+                    </div>
+
+                    <div class="model-grid" id="available-models-grid">
+                        {% for model in available_models %}
+                        <div class="model-card model-available" data-model-name="{{ model.name }}">
+                            <div class="model-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ model.name }}</h5>
+                                    <span class="size-badge">{{ model.size }}</span>
+                                </div>
+                            </div>
+                            <div class="model-body">
+                                <p class="mb-3">{{ model.description }}</p>
+                                
+                                <div class="model-actions">
+                                    <button class="btn btn-sm btn-primary pull-model-btn" 
+                                            data-model="{{ model.name }}">
+                                        <i class="fas fa-download"></i> Scarica
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary test-model-btn ml-2" 
+                                            data-model="{{ model.name }}">
+                                        <i class="fas fa-check-circle"></i> Test
+                                        <div class="loading-spinner spinner-border spinner-border-sm" role="status" style="display: none;">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div id="test-result-{{ model.name|replace(':', '-')|replace('/', '-') }}" class="test-result mt-2" style="display: none;"></div>
+                                
+                                <div class="progress-container" id="progress-{{ model.name|replace(':', '-') }}">
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="progress-text">Download in corso...</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Info Modello -->
+<div class="modal fade" id="modelInfoModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Informazioni Modello</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="model-info-content">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin"></i> Caricamento...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test connessione iniziale
+    testOllamaConnection();
+    
+    // Ricerca modelli
+    document.getElementById('model-search').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const modelCards = document.querySelectorAll('#available-models-grid .model-card');
+        
+        modelCards.forEach(card => {
+            const modelName = card.dataset.modelName.toLowerCase();
+            const description = card.querySelector('p').textContent.toLowerCase();
+            
+            if (modelName.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+    
+    // Download modello
+    document.querySelectorAll('.pull-model-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modelName = this.dataset.model;
+            pullModel(modelName, this);
+        });
+    });
+    
+    // Elimina modello
+    document.querySelectorAll('.delete-model-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modelName = this.dataset.model;
+            
+            if (confirm(`Sei sicuro di voler eliminare il modello ${modelName}?`)) {
+                deleteModel(modelName, this);
+            }
+        });
+    });
+    
+    // Info modello
+    document.querySelectorAll('.model-info-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modelName = this.dataset.model;
+            showModelInfo(modelName);
+        });
+    });
+});
+
+function testOllamaConnection() {
+    const statusDiv = document.getElementById('connection-status');
+    
+    // Simula test connessione (implementare chiamata reale)
+    setTimeout(() => {
+        statusDiv.className = 'connection-status status-connected';
+        statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Connessione a Ollama riuscita';
+    }, 2000);
+}
+
+function pullModel(modelName, button) {
+    const progressContainer = document.getElementById(`progress-${modelName.replace(':', '-')}`);
+    const progressBar = progressContainer.querySelector('.progress-bar');
+    const progressText = progressContainer.querySelector('.progress-text');
+    
+    // Disabilita il pulsante e mostra progress
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scaricando...';
+    progressContainer.style.display = 'block';
+    
+    // Simula download con progress
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        progressText.textContent = `Download in corso... ${Math.round(progress)}%`;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            
+            // Simula completamento
+            setTimeout(() => {
+                progressText.textContent = 'Download completato!';
+                
+                setTimeout(() => {
+                    alert(`Modello ${modelName} scaricato con successo!`);
+                    location.reload(); // Ricarica per aggiornare la lista
+                }, 1000);
+            }, 500);
+        }
+    }, 200);
+    
+    // Chiamata API reale (da implementare)
+    fetch(`{{ url_for('admin.ollama_pull_model', model_name='MODEL') }}`.replace('MODEL', modelName), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            clearInterval(interval);
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-download"></i> Scarica';
+            progressContainer.style.display = 'none';
+            alert('Errore nel download: ' + (data.error || 'Errore sconosciuto'));
+        }
+    })
+    .catch(error => {
+        clearInterval(interval);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-download"></i> Scarica';
+        progressContainer.style.display = 'none';
+        alert('Errore di connessione: ' + error.message);
+    });
+}
+
+function deleteModel(modelName, button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+    
+    fetch(`{{ url_for('admin.ollama_delete_model', model_name='MODEL') }}`.replace('MODEL', modelName), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Errore: ' + (data.error || 'Errore sconosciuto'));
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-trash"></i> Elimina';
+        }
+    })
+    .catch(error => {
+        alert('Errore di connessione: ' + error.message);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-trash"></i> Elimina';
+    });
+}
+
+function showModelInfo(modelName) {
+    const modal = new bootstrap.Modal(document.getElementById('modelInfoModal'));
+    const content = document.getElementById('model-info-content');
+    
+    content.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento...</div>';
+    modal.show();
+    
+    // Simula caricamento info (implementare chiamata reale)
+    setTimeout(() => {
+        content.innerHTML = `
+            <h6>Modello: ${modelName}</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Dimensione:</strong> 4.1 GB<br>
+                    <strong>Parametri:</strong> 7B<br>
+                    <strong>Tipo:</strong> Chat/Instruct
+                </div>
+                <div class="col-md-6">
+                    <strong>Architettura:</strong> Transformer<br>
+                    <strong>Formato:</strong> GGUF<br>
+                    <strong>Licenza:</strong> Apache 2.0
+                </div>
+            </div>
+            <hr>
+            <strong>Descrizione:</strong><br>
+            Questo è un modello di linguaggio avanzato ottimizzato per conversazioni e compiti di comprensione del testo.
+            Ideale per applicazioni di etichettatura e classificazione automatica.
+        `;
+    }, 1000);
+}
+
+// Test modello
+document.querySelectorAll('.test-model-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const modelName = this.dataset.model;
+        const spinner = this.querySelector('.loading-spinner');
+        const resultDiv = document.getElementById(`test-result-${modelName.replace(/[\/:]/g, '-')}`);
+        
+        // Mostra spinner
+        spinner.style.display = 'inline-block';
+        this.disabled = true;
+        resultDiv.style.display = 'none';
+        
+        // Test di connessione al modello
+        fetch('/admin/ollama/test-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({model: modelName})
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `test-result ${data.success ? 'test-success' : 'test-error'}`;
+            resultDiv.textContent = data.message;
+            resultDiv.style.display = 'block';
+        })
+        .catch(error => {
+            resultDiv.className = 'test-result test-error';
+            resultDiv.textContent = 'Errore nella connessione: ' + error.message;
+            resultDiv.style.display = 'block';
+        })
+        .finally(() => {
+            spinner.style.display = 'none';
+            this.disabled = false;
+        });
+    });
+});
+</script>
+{% endblock %}

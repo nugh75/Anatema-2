@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Forum: {{ excel_file.original_filename }} - Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="forum-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1">
+                                <i class="bi bi-chat-dots me-2"></i>Forum: {{ excel_file.original_filename }}
+                            </h2>
+                            <p class="text-muted mb-0">Discussioni e collaborazione per questo file Excel</p>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('forum.index') }}" class="btn btn-outline-light me-2">
+                                <i class="bi bi-arrow-left me-1"></i>Tutti i Forum
+                            </a>
+                            <a href="{{ url_for('forum.create_post_direct', file_id=excel_file.id) }}" class="btn btn-success me-2">
+                                <i class="bi bi-plus-circle me-1"></i>Crea Post
+                            </a>
+                            <a href="{{ url_for('forum.create_category', file_id=excel_file.id) }}" class="btn btn-warning me-2">
+                                <i class="bi bi-plus-circle me-1"></i>Nuova Categoria
+                            </a>
+                            <form method="POST" action="{{ url_for('forum.regenerate_categories', file_id=excel_file.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-outline-light" 
+                                        onclick="return confirm('Rigenerare le categorie dalle domande del file Excel? Questo rimuoverà le categorie esistenti di sistema.')">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Rigenera Categorie
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Post del forum -->
+            <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-dots me-2"></i>Tutti i Post
+                    </h5>
+                    <a href="{{ url_for('forum.create_post_direct', file_id=excel_file.id) }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Nuovo Post
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_posts %}
+                    <div class="list-group list-group-flush">
+                        {% for post in recent_posts %}
+                        <div class="list-group-item">
+                            <div class="row align-items-start">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <a href="{{ url_for('forum.view_post', post_id=post.id) }}" 
+                                           class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h6>
+                                    <p class="text-muted mb-1 small">
+                                        {{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}
+                                    </p>
+                                    <small class="text-muted">
+                                        da <strong>{{ post.author.username }}</strong> • 
+                                        {{ post.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    </small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <span class="badge bg-primary">{{ post.comments|length }} commenti</span>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <span class="badge bg-secondary">{{ post.views or 0 }} visualizzazioni</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if recent_posts|length >= 10 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('forum.category', category_id=general_category.id) }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-right me-1"></i>Vedi Tutti i Post
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-chat-dots display-4 text-muted mb-3"></i>
+                        <h6 class="text-muted">Nessun post ancora</h6>
+                        <p class="text-muted mb-3">Inizia una discussione con il primo post!</p>
+                        <a href="{{ url_for('forum.create_post_direct', file_id=excel_file.id) }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Crea il Primo Post
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Categorie (sezione secondaria) -->
+            {% if categories_with_stats and categories_with_stats|length > 1 %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-collection me-2"></i>Categorie (opzionale)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for category, post_count, last_activity in categories_with_stats %}
+                        <div class="col-md-6 mb-2">
+                            <a href="{{ url_for('forum.category', category_id=category.id) }}" 
+                               class="btn btn-outline-secondary btn-sm w-100 text-start">
+                                <i class="{{ category.icon }} me-2"></i>{{ category.name }}
+                                <span class="badge bg-primary float-end">{{ post_count or 0 }}</span>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar con ultimi post -->
+        <div class="col-lg-4">
+            <!-- Statistiche rapide -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>Statistiche Forum
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-primary">{{ total_posts }}</h5>
+                            <small class="text-muted">Post</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-success">{{ total_comments }}</h5>
+                            <small class="text-muted">Commenti</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-info">{{ categories_with_stats|length }}</h5>
+                            <small class="text-muted">Categorie</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ultimi post -->
+            {% if recent_posts %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock me-2"></i>Ultimi Post
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for post in recent_posts %}
+                    <div class="mb-3{% if not loop.last %} border-bottom pb-3{% endif %}">
+                        <h6 class="mb-1">
+                            <a href="{{ url_for('forum.view_post', post_id=post.id) }}" 
+                               class="text-decoration-none">
+                                {{ post.title[:50] }}{% if post.title|length > 50 %}...{% endif %}
+                            </a>
+                        </h6>
+                        <small class="text-muted">
+                            da {{ post.author.username }} • 
+                            {{ post.created_at.strftime('%d/%m %H:%M') }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Azioni rapide -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('forum.search', file_id=excel_file.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-search me-1"></i>Cerca nel Forum
+                        </a>
+                        <a href="{{ url_for('excel.view_file', file_id=excel_file.id) }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Vedi File Excel
+                        </a>
+                        <a href="{{ url_for('annotation.browse_annotations') }}" 
+                           class="btn btn-outline-info">
+                            <i class="bi bi-tags me-1"></i>Vai alle Annotazioni
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ricerca rapida -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('forum.search', file_id=excel_file.id) }}" class="row g-3">
+                        <div class="col-md-10">
+                            <input type="text" class="form-control" name="q" 
+                                   placeholder="Cerca post, commenti o discussioni..." 
+                                   value="{{ request.args.get('q', '') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search me-1"></i>Cerca
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

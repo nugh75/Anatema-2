@@ -1,0 +1,2222 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche Quesito - {{ question }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Stili per i filtri delle etichette */
+.card-body.border-bottom {
+    background-color: #f8f9fa !important;
+}
+
+.label-badge {
+    transition: all 0.3s ease;
+}
+
+.label-badge:hover {
+    transform: scale(1.05);
+}
+
+#label-filters-form .form-control:focus,
+#label-filters-form .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-group .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Stili per i filtri dei grafici - PROTETTI */
+.chart-filters-container {
+    position: relative;
+    z-index: 1000;
+    border: 2px solid #0dcaf0 !important;
+    box-shadow: 0 2px 8px rgba(13, 202, 240, 0.15);
+    background: white !important;
+    opacity: 1 !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.chart-filters-container .card-header {
+    background-color: #0dcaf0 !important;
+    color: white !important;
+    border-bottom: 1px solid #0dcaf0 !important;
+}
+
+.chart-filters-container .card-body {
+    background-color: #ffffff !important;
+    padding: 1rem !important;
+}
+
+/* Protezione anti-rimozione automatica */
+.chart-filters-container,
+.chart-filters-container * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Override per evitare interferenze */
+.chart-filters-container.alert {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Stili per i grafici */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    margin: 10px 0;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.tab-content {
+    padding: 20px 0;
+}
+
+/* Stili per le legende personalizzate */
+.chart-legend {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.legend-item:hover {
+    background-color: #f8f9fa;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    font-size: 0.875rem;
+    flex-grow: 1;
+}
+
+.legend-value {
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Responsive charts */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+    
+    .nav-tabs .nav-link {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Loading spinner per i grafici */
+.chart-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #6c757d;
+}
+
+.chart-loading .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Animazioni per i tab */
+.tab-pane {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.tab-pane.show.active {
+    opacity: 1;
+}
+
+/* Stili per il contenuto delle celle */
+.cell-content {
+    text-align: left !important;
+    text-indent: 0 !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Stili specifici per la tabella Annotazioni per Cella */
+.table table-sm table-hover td {
+    text-align: left !important;
+    padding-left: 0.5rem !important;
+}
+
+/* Override più specifico per la colonna Contenuto */
+.table.table-sm.table-hover td:nth-child(2) {
+    text-align: left !important;
+    padding-left: 0.25rem !important;
+    vertical-align: top !important;
+}
+
+/* Override ancora più specifico per forzare l'allineamento */
+.table.table-sm.table-hover td:nth-child(2) .cell-content {
+    text-align: left !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-indent: 0 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="bi bi-question-circle me-2"></i>Quesito: {{ question }}</h2>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('statistics.question_compare', file_id=file.id, question=question) }}" 
+                       class="btn btn-success">
+                        <i class="bi bi-people"></i> Confronta Annotatori
+                    </a>
+                    <a href="{{ url_for('statistics.file_detail', file_id=file.id) }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna al File
+                    </a>
+                </div>
+            </div>
+
+            <!-- Pulsanti per export report completo -->
+            <div class="d-flex justify-content-center mb-4">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('statistics.export_question_report', file_id=file.id, question=question, format='csv') }}" 
+                       class="btn btn-outline-success btn-sm" title="Scarica report completo in CSV">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                    </a>
+                    <a href="{{ url_for('statistics.export_question_report', file_id=file.id, question=question, format='json') }}" 
+                       class="btn btn-outline-success btn-sm" title="Scarica report completo in JSON">
+                        <i class="bi bi-file-earmark-code"></i> JSON
+                    </a>
+                    <a href="{{ url_for('statistics.export_question_report', file_id=file.id, question=question, format='txt') }}" 
+                       class="btn btn-outline-success btn-sm" title="Scarica report completo in TXT">
+                        <i class="bi bi-file-earmark-text"></i> TXT
+                    </a>
+                    <a href="{{ url_for('statistics.export_question_report', file_id=file.id, question=question, format='word') }}" 
+                       class="btn btn-outline-success btn-sm" title="Scarica report completo in Word">
+                        <i class="bi bi-file-earmark-word"></i> Word
+                    </a>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="exportCompleteReport('pdf')" title="Scarica report completo in PDF">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.overview') }}">Statistiche</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.file_detail', file_id=file.id) }}">{{ file.filename }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ question }}</li>
+                </ol>
+            </nav>
+
+            <!-- Statistiche Generali -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">{{ cells|length }}</h3>
+                            <p class="mb-0">Celle Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">{{ cells_with_annotations|length }}</h3>
+                            <p class="mb-0">Celle Annotate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <h3 class="text-info">{{ annotator_stats|length }}</h3>
+                            <p class="mb-0">Annotatori</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">{{ label_stats|length }}</h3>
+                            <p class="mb-0">Etichette</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Annotatori -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-people me-2"></i>Annotatori
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Annotatore</th>
+                                            <th>Annotazioni</th>
+                                            <th>Celle</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for user in annotator_stats %}
+                                        <tr>
+                                            <td>{{ user.username }}</td>
+                                            <td>{{ user.annotation_count }}</td>
+                                            <td>{{ user.cell_count }}</td>
+                                            <td>
+                                                <a href="{{ url_for('statistics.user_detail', user_id=user.id) }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> Dettagli
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tutte le Etichette del Quesito -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-tags me-2"></i>Tutte le Etichette del Quesito
+                                <small class="text-muted">(Resoconto completo)</small>
+                            </h5>
+                        </div>
+                        
+                        <!-- Sezione Filtri -->
+                        <div class="card-body border-bottom bg-light">
+                            <form method="GET" class="row g-2" id="label-filters-form">
+                                <div class="col-md-3">
+                                    <label for="category-filter" class="form-label small mb-1">Categoria</label>
+                                    <select class="form-select form-select-sm" name="category" id="category-filter">
+                                        <option value="">Tutte le categorie</option>
+                                        {% for category in available_categories %}
+                                        <option value="{{ category }}" 
+                                                {% if current_filters.category == category %}selected{% endif %}>
+                                            {{ category }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <label for="label-name-filter" class="form-label small mb-1">Nome Etichetta</label>
+                                    <input type="text" class="form-control form-control-sm" 
+                                           name="label_name" id="label-name-filter"
+                                           value="{{ current_filters.label_name or '' }}"
+                                           placeholder="Cerca etichetta...">
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <label for="min-usage-filter" class="form-label small mb-1">Min Utilizzi</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           name="min_usage" id="min-usage-filter"
+                                           value="{{ current_filters.min_usage or '' }}"
+                                           min="{{ min_usage_available }}" max="{{ max_usage_available }}"
+                                           placeholder="{{ min_usage_available }}">
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <label for="max-usage-filter" class="form-label small mb-1">Max Utilizzi</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                           name="max_usage" id="max-usage-filter"
+                                           value="{{ current_filters.max_usage or '' }}"
+                                           min="{{ min_usage_available }}" max="{{ max_usage_available }}"
+                                           placeholder="{{ max_usage_available }}">
+                                </div>
+                                
+                                <div class="col-md-2">
+                                    <label class="form-label small mb-1">&nbsp;</label>
+                                    <div class="d-flex gap-1">
+                                        <button type="submit" class="btn btn-primary btn-sm" title="Applica filtri">
+                                            <i class="bi bi-funnel"></i>
+                                        </button>
+                                        <a href="{{ url_for('statistics.question_detail', file_id=file.id, question=question) }}" 
+                                           class="btn btn-outline-secondary btn-sm" title="Reset filtri">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ordinamento -->
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <small class="text-muted">Ordina per:</small>
+                                        <select class="form-select form-select-sm" name="sort_by" style="width: auto;" onchange="this.form.submit()">
+                                            <option value="name" {% if current_filters.sort_by == 'name' %}selected{% endif %}>Nome</option>
+                                            <option value="category" {% if current_filters.sort_by == 'category' %}selected{% endif %}>Categoria</option>
+                                            <option value="usage" {% if current_filters.sort_by == 'usage' %}selected{% endif %}>Utilizzi</option>
+                                        </select>
+                                        <select class="form-select form-select-sm" name="sort_order" style="width: auto;" onchange="this.form.submit()">
+                                            <option value="asc" {% if current_filters.sort_order == 'asc' %}selected{% endif %}>Crescente</option>
+                                            <option value="desc" {% if current_filters.sort_order == 'desc' %}selected{% endif %}>Decrescente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="card-body">
+                            <!-- Statistiche dei risultati filtrati -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Visualizzate {{ label_stats|length }} etichette
+                                        {% if current_filters.category or current_filters.label_name or current_filters.min_usage or current_filters.max_usage %}
+                                        <span class="badge bg-secondary ms-1">Filtrate</span>
+                                        {% endif %}
+                                    </small>
+                                    {% if label_stats %}
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportLabelsCSV()" title="Esporta in CSV">
+                                            <i class="bi bi-download"></i> CSV
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleHighlight()" title="Evidenzia termini cercati">
+                                            <i class="bi bi-highlighter"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm" id="labels-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Etichetta</th>
+                                            <th>Categoria</th>
+                                            <th>Utilizzi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for label in label_stats %}
+                                        <tr class="label-row" data-label-name="{{ label.name|lower }}" data-category="{{ (label.category_name or '')|lower }}">
+                                            <td>
+                                                <span class="badge label-badge" style="background-color: {{ label.color }}" data-label="{{ label.name }}">
+                                                    {{ label.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ label.category_name or 'Senza categoria' }}</td>
+                                            <td>
+                                                <strong>{{ label.usage_count }}</strong>
+                                                <small class="text-muted ms-1">utilizzi</small>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% if label_stats %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Totale etichette trovate: {{ label_stats|length }}
+                                </small>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-3">
+                                <i class="bi bi-search text-muted"></i>
+                                <p class="text-muted mb-0">Nessuna etichetta trovata con i filtri applicati</p>
+                                <a href="{{ url_for('statistics.question_detail', file_id=file.id, question=question) }}" 
+                                   class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Filtri
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Istogramma Etichette Filtrate -->
+            {% if label_stats %}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-bar-chart-fill me-2"></i>Istogramma Utilizzi Etichette
+                                <small class="text-muted">(Visualizzazione delle etichette con i loro utilizzi)</small>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="chart-container" style="height: 400px;">
+                                        <canvas id="histogramLabelsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <strong>Informazioni Istogramma:</strong><br>
+                                            • Barre colorate con i colori originali delle etichette<br>
+                                            • Altezza barre = numero di utilizzi per etichetta<br>
+                                            • Applica gli stessi filtri della tabella sopra<br>
+                                            • Ordinamento rispetta la selezione nella tabella
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Report Etichette con Commenti -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-chat-text me-2"></i>Report Completo - Etichette con Tutti i Commenti
+                                <small class="text-muted">(Resoconto dettagliato per ogni etichetta)</small>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if labels_with_comments %}
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Questo è il resoconto completo di tutte le etichette utilizzate per questo quesito.</strong>
+                                <br>
+                                Ogni etichetta mostra tutti i commenti dove è stata applicata con il numero del rispondente (#).
+                                <br>
+                                <small class="text-muted">
+                                    Totale etichette: {{ labels_with_comments|length }} | 
+                                    Totale commenti: {{ labels_with_comments.values()|map('length')|sum }}
+                                </small>
+                            </div>
+                            
+                            <!-- Lista delle etichette con commenti -->
+                            {% for label_name, comments in labels_with_comments.items() %}
+                            <div class="mb-4">
+                                <h6>
+                                    <span class="badge me-2" style="background-color: {{ comments[0].color }}">
+                                        {{ label_name }}
+                                    </span>
+                                    <span class="text-muted">({{ comments|length }} commenti)</span>
+                                    {% if comments[0].category_name %}
+                                    <small class="text-muted ms-2">
+                                        - Categoria: {{ comments[0].category_name }}
+                                    </small>
+                                    {% endif %}
+                                </h6>
+                                
+                                <ul class="list-unstyled ms-3">
+                                    {% for comment in comments %}
+                                    <li class="mb-2">
+                                        <div class="d-flex">
+                                            <div class="me-2">
+                                                <strong class="text-primary">#{{ comment.row_number }}</strong>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                {{ comment.content }}
+                                                {% if comment.is_ai_generated %}
+                                                <small class="text-info ms-2">
+                                                    🤖 AI
+                                                    {% if comment.ai_confidence %}
+                                                    ({{ "%.0f"|format(comment.ai_confidence * 100) }}%)
+                                                    {% endif %}
+                                                </small>
+                                                {% endif %}
+                                                {% if comment.annotator %}
+                                                <small class="text-muted ms-2">
+                                                    - {{ comment.annotator }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                Nessuna etichetta trovata per questo quesito.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Annotazioni per Cella -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-table me-2"></i>Annotazioni per Cella
+                                <small class="text-muted">(Raggruppamento Etichetta + AI Info con ID)</small>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Cella</th>
+                                            <th>Contenuto</th>
+                                            <th>Annotazioni</th>
+                                            <th>Annotatori</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cell_id, annotations in cells_with_annotations.items() %}
+                                        <tr>
+                                            <td><code>{{ cell_id }}</code></td>
+                                            <td style="min-width: 300px; max-width: 500px; text-align: left !important; padding-left: 0.25rem !important;">
+                                                {% set cell_content = annotations[0].content %}
+                                                <div class="cell-content" style="white-space: normal; word-wrap: break-word; word-break: break-all; text-align: left !important; direction: ltr !important;">
+                                                    {{ cell_content|trim }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% for ann in annotations %}
+                                                <div class="mb-1">
+                                                    <span class="badge me-1" 
+                                                          style="background-color: {{ ann.label_color }}">
+                                                        {{ ann.label_name }}
+                                                    </span>
+                                                    <small class="text-muted">(ID: {{ ann.annotation_id }})</small>
+                                                    {% if ann.is_ai_generated %}
+                                                    <br>
+                                                    <small class="text-info">🤖 AI Generated 
+                                                        {% if ann.ai_confidence %}
+                                                        - {{ "%.0f"|format(ann.ai_confidence * 100) }}%
+                                                        {% endif %}
+                                                    </small>
+                                                    {% endif %}
+                                                    {% if ann.status != 'active' %}
+                                                    <br>
+                                                    <small class="text-warning">Status: {{ ann.status }}</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {% for ann in annotations %}
+                                                <small class="d-block">{{ ann.annotator }}</small>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('annotation.annotate_cell', cell_id=cell_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="bi bi-pencil"></i> Modifica
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Funzionalità avanzate per i filtri delle etichette
+
+// Variabile per lo stato di evidenziazione
+let highlightEnabled = false;
+
+// Export CSV delle etichette filtrate
+function exportLabelsCSV() {
+    const table = document.getElementById('labels-table');
+    const rows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
+    
+    if (rows.length === 0) {
+        alert('Nessuna etichetta da esportare!');
+        return;
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Etichetta,Categoria,Utilizzi\n";
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const labelName = cells[0].querySelector('.label-badge').textContent.trim();
+        const category = cells[1].textContent.trim();
+        const usage = cells[2].querySelector('strong').textContent.trim();
+        
+        csvContent += `"${labelName}","${category}","${usage}"\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "etichette_quesito_{{ question|replace(' ', '_') }}_{{ file.filename|replace('.xlsx', '') }}.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Export report completo in vari formati
+function exportCompleteReport(format) {
+    if (format === 'word') {
+        // Per Word, usiamo l'endpoint TXT e lo apriamo come documento Word-compatibile
+        fetch(`{{ url_for('statistics.export_question_report', file_id=file.id, question=question, format='txt') }}`)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report_completo_{{ question|replace(' ', '_') }}_{{ file.filename|replace('.xlsx', '') }}.doc`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Errore nell\'export Word:', error);
+                alert('Errore durante l\'esportazione in formato Word');
+            });
+    } else if (format === 'pdf') {
+        // Per PDF, apriamo una finestra di stampa
+        window.print();
+    } else {
+        console.log(`Export in formato ${format} non supportato lato client`);
+        alert(`Usa i pulsanti di esportazione diretti per il formato ${format.toUpperCase()}`);
+    }
+
+// Toggle evidenziazione termini cercati
+function toggleHighlight() {
+    highlightEnabled = !highlightEnabled;
+    const searchTerm = document.getElementById('label-name-filter').value.toLowerCase();
+    const badges = document.querySelectorAll('.label-badge');
+    
+    badges.forEach(badge => {
+        if (highlightEnabled && searchTerm) {
+            const text = badge.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                badge.style.boxShadow = '0 0 10px #ffc107';
+                badge.style.border = '2px solid #ffc107';
+            }
+        } else {
+            badge.style.boxShadow = '';
+            badge.style.border = '';
+        }
+    });
+    
+    // Cambia icona del pulsante
+    const btn = event.target.closest('button');
+    const icon = btn.querySelector('i');
+    if (highlightEnabled) {
+        icon.className = 'bi bi-highlighter-fill';
+        btn.classList.add('active');
+    } else {
+        icon.className = 'bi bi-highlighter';
+        btn.classList.remove('active');
+    }
+}
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js per i grafici -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Funzionalità avanzate per i filtri delle etichette
+
+// Variabile per lo stato di evidenziazione
+let highlightEnabled = false;
+
+// Variabili globali per i grafici
+let labelsChart, annotatorsChart, categoriesChart, coverageOverviewChart, coverageDistributionChart, reportLabelsChart, histogramLabelsChart;
+
+// Inizializzazione al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Inizializzazione grafici statistiche...');
+    
+    // Inizializza grafici quando i tab vengono attivati
+    const labelsTab = document.getElementById('labels-chart-tab');
+    const annotatorsTab = document.getElementById('annotators-chart-tab');
+    const categoriesTab = document.getElementById('categories-chart-tab');
+    const coverageTab = document.getElementById('coverage-chart-tab');
+    
+    if (labelsTab) {
+        labelsTab.addEventListener('shown.bs.tab', function() {
+            console.log('📊 Caricamento grafico etichette...');
+            loadLabelsChart();
+        });
+    }
+    
+    if (annotatorsTab) {
+        annotatorsTab.addEventListener('shown.bs.tab', function() {
+            console.log('👥 Caricamento grafico annotatori...');
+            loadAnnotatorsChart();
+        });
+    }
+    
+    if (categoriesTab) {
+        categoriesTab.addEventListener('shown.bs.tab', function() {
+            console.log('🏷️ Caricamento grafico categorie...');
+            loadCategoriesChart();
+        });
+    }
+    
+    if (coverageTab) {
+        coverageTab.addEventListener('shown.bs.tab', function() {
+            console.log('📈 Caricamento grafici copertura...');
+            loadCoverageCharts();
+        });
+    }
+    
+
+
+    
+    // Carica il primo grafico (etichette) dopo un piccolo delay
+    setTimeout(() => {
+        console.log('🚀 Caricamento iniziale grafico etichette...');
+        loadLabelsChart();
+    }, 500);
+    
+    // Carica l'istogramma delle etichette
+    setTimeout(() => {
+        console.log('📊 Caricamento istogramma etichette...');
+        loadHistogramLabelsChart();
+    }, 800);
+    
+    // Setup filtri esistenti
+    setupFilters();
+    
+    console.log('✅ Inizializzazione grafici completata');
+});
+
+// FUNZIONE DI PROTEZIONE FILTRI
+function protectChartFilters() {
+    const container = document.querySelector('.chart-filters-container');
+    if (!container) return;
+    
+    // Assicurati che il container sia sempre visibile
+    container.style.display = 'block';
+    container.style.opacity = '1';
+    container.style.visibility = 'visible';
+    
+    // Rimuovi eventuali timer di auto-rimozione
+    if (container.timeoutId) {
+        clearTimeout(container.timeoutId);
+        delete container.timeoutId;
+    }
+    
+    // Previeni che venga trattato come alert auto-removibile
+    container.classList.remove('alert');
+    container.classList.add('alert-permanent');
+    
+    // Assicurati che tutti i controlli siano presenti
+    const requiredElements = [
+        '#chart-category-filter',
+        '#chart-label-filter', 
+        '#chart-min-usage',
+        '#chart-max-usage',
+        '#update-charts-btn',
+        '#chart-filter-status'
+    ];
+    
+    let allPresent = true;
+    requiredElements.forEach(selector => {
+        if (!document.querySelector(selector)) {
+            console.warn(`⚠️ Elemento filtro mancante: ${selector}`);
+            allPresent = false;
+        }
+    });
+    
+    if (!allPresent) {
+        console.error('❌ Alcuni elementi dei filtri sono mancanti, potrebbero essere stati rimossi');
+    }
+}
+
+// Carica grafico istogramma etichette
+function loadLabelsChart() {
+    console.log('🔄 loadLabelsChart() chiamata');
+    
+    if (labelsChart) {
+        console.log('🗑️ Distruggendo grafico esistente');
+        labelsChart.destroy();
+    }
+    
+    const canvas = document.getElementById('labelsHistogramChart');
+    if (!canvas) {
+        console.error('❌ Canvas labelsHistogramChart non trovato!');
+        return;
+    }
+    
+    console.log('✅ Canvas trovato:', canvas);
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Mostra loader
+    showChartLoader(ctx);
+    
+    // Ottieni filtri correnti
+    const filters = getCurrentChartFilters();
+    
+    // Aggiungi il quesito ai parametri (codificato correttamente)
+    filters.question = `{{ question|e }}`;
+    
+    const queryString = new URLSearchParams(filters).toString();
+    
+    const url = `/statistics/api/question_chart_data/{{ file.id }}/labels_histogram?${queryString}`;
+    console.log('🌐 Chiamata API:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('📡 Risposta ricevuta:', response.status, response.statusText);
+            console.log('📡 URL chiamato:', response.url);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    console.error('❌ Errore risposta:', text);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 Dati ricevuti:', data);
+            
+            if (data.labels.length === 0) {
+                console.warn('⚠️ Nessun dato trovato');
+                showChartError(ctx, 'Nessun dato trovato con i filtri applicati');
+                updateLabelsLegend({labels: [], categories: [], colors: [], values: []});
+                return;
+            }
+            
+            labelsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Utilizzi',
+                        data: data.values,
+                        backgroundColor: data.colors.map(color => color + '80'), // Aggiungi trasparenza
+                        borderColor: data.colors,
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Frequenza di utilizzo delle etichette ${getFilterDescription()}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const category = data.categories[context.dataIndex];
+                                    return [
+                                        `Etichetta: ${context.label}`,
+                                        `Utilizzi: ${context.parsed.y}`,
+                                        `Categoria: ${category}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Numero di utilizzi'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Etichette'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            // Aggiorna legenda personalizzata
+            updateLabelsLegend(data);
+        })
+        .catch(error => {
+            console.error('❌ Errore nel caricamento del grafico etichette:', error);
+            showChartError(ctx, `Errore nel caricamento dei dati delle etichette: ${error.message}`);
+            updateLabelsLegend({labels: [], categories: [], colors: [], values: []});
+        });
+}
+
+// Carica grafico annotatori
+function loadAnnotatorsChart() {
+    console.log('🔄 loadAnnotatorsChart() chiamata');
+    
+    if (annotatorsChart) {
+        console.log('🗑️ Distruggendo grafico annotatori esistente');
+        annotatorsChart.destroy();
+    }
+    
+    const canvas = document.getElementById('annotatorsHistogramChart');
+    if (!canvas) {
+        console.error('❌ Canvas annotatorsHistogramChart non trovato!');
+        return;
+    }
+    
+    console.log('✅ Canvas annotatori trovato:', canvas);
+    
+    const ctx = canvas.getContext('2d');
+    showChartLoader(ctx);
+    
+    // Ottieni filtri correnti
+    const filters = getCurrentChartFilters();
+    
+    // Aggiungi il quesito ai parametri
+    filters.question = `{{ question|e }}`;
+    
+    const queryString = new URLSearchParams(filters).toString();
+    
+    const url = `/statistics/api/question_chart_data/{{ file.id }}/annotators_histogram?${queryString}`;
+    console.log('🌐 Chiamata API annotatori:', url);
+    
+    fetch(url)
+        .then(response => {
+            console.log('📡 Risposta annotatori ricevuta:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📊 Dati annotatori ricevuti:', data);
+            
+            if (data.labels.length === 0) {
+                console.warn('⚠️ Nessun annotatore trovato');
+                showChartError(ctx, 'Nessun annotatore trovato con i filtri applicati');
+                updateAnnotatorsStats({labels: [], annotations: [], cells: []});
+                return;
+            }
+            
+            annotatorsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Totale Annotazioni',
+                            data: data.annotations,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Celle Uniche',
+                            data: data.cells,
+                            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Produttività annotatori ${getFilterDescription()}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        const cells = data.cells[context.dataIndex];
+                                        const annotations = data.annotations[context.dataIndex];
+                                        const ratio = cells > 0 ? (annotations / cells).toFixed(1) : 0;
+                                        return `Intensità: ${ratio} annotazioni/cella`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Quantità'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Annotatori'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            // Aggiorna statistiche annotatori
+            updateAnnotatorsStats(data);
+        })
+        .catch(error => {
+            console.error('❌ Errore nel caricamento del grafico annotatori:', error);
+            showChartError(ctx, `Errore nel caricamento dei dati degli annotatori: ${error.message}`);
+            updateAnnotatorsStats({labels: [], annotations: [], cells: []});
+        });
+}
+
+// Carica grafico categorie
+function loadCategoriesChart() {
+    if (categoriesChart) {
+        categoriesChart.destroy();
+    }
+    
+    const canvas = document.getElementById('categoriesDistributionChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    showChartLoader(ctx);
+    
+    fetch(`/statistics/api/question_chart_data/{{ file.id }}/categories_distribution?question={{ question|urlencode }}`)
+        .then(response => response.json())
+        .then(data => {
+            const colors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+                '#4BC0C0', '#FF6384', '#36A2EB', '#FFCE56'
+            ];
+            
+            categoriesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.categories,
+                    datasets: [{
+                        label: 'Annotazioni',
+                        data: data.annotations,
+                        backgroundColor: colors.slice(0, data.categories.length),
+                        borderColor: colors.slice(0, data.categories.length).map(color => color),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribuzione per categoria tematica',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = data.annotations.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    const labelCount = data.labels_count[context.dataIndex];
+                                    return [
+                                        `${context.label}: ${context.parsed} annotazioni (${percentage}%)`,
+                                        `Etichette uniche: ${labelCount}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            // Aggiorna statistiche categorie
+            updateCategoriesStats(data);
+        })
+        .catch(error => {
+            console.error('Errore nel caricamento del grafico categorie:', error);
+            showChartError(ctx, 'Errore nel caricamento dei dati delle categorie');
+        });
+}
+
+// Carica grafici di copertura
+function loadCoverageCharts() {
+    const canvas1 = document.getElementById('coverageOverviewChart');
+    const canvas2 = document.getElementById('coverageDistributionChart');
+    
+    if (!canvas1 || !canvas2) return;
+    
+    const ctx1 = canvas1.getContext('2d');
+    const ctx2 = canvas2.getContext('2d');
+    
+    showChartLoader(ctx1);
+    showChartLoader(ctx2);
+    
+    fetch(`/statistics/api/question_chart_data/{{ file.id }}/coverage_analysis?question={{ question|urlencode }}`)
+        .then(response => response.json())
+        .then(data => {
+            // Grafico overview copertura
+            if (coverageOverviewChart) {
+                coverageOverviewChart.destroy();
+            }
+            
+            coverageOverviewChart = new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: ['Celle Annotate', 'Celle Non Annotate'],
+                    datasets: [{
+                        data: [data.annotated_cells, data.unannotated_cells],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderColor: ['#28a745', '#dc3545'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Copertura: ${data.coverage_percentage.toFixed(1)}%`,
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const percentage = ((context.parsed / data.total_cells) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} celle (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Grafico distribuzione intensità
+            if (coverageDistributionChart) {
+                coverageDistributionChart.destroy();
+            }
+            
+            coverageDistributionChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: data.distribution_labels,
+                    datasets: [{
+                        label: 'Numero di celle',
+                        data: data.distribution_values,
+                        backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Intensità di annotazione',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Numero di celle'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Annotazioni per cella'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Aggiorna statistiche copertura
+            updateCoverageStats(data);
+        })
+        .catch(error => {
+            console.error('Errore nel caricamento dei grafici di copertura:', error);
+            showChartError(ctx1, 'Errore nei dati di copertura');
+            showChartError(ctx2, 'Errore nei dati di distribuzione');
+        });
+}
+
+// Carica istogramma etichette
+function loadHistogramLabelsChart() {
+    console.log('📊 loadHistogramLabelsChart() chiamata');
+    
+    if (histogramLabelsChart) {
+        console.log('🗑️ Distruggendo istogramma esistente');
+        histogramLabelsChart.destroy();
+    }
+    
+    const canvas = document.getElementById('histogramLabelsChart');
+    if (!canvas) {
+        console.warn('⚠️ Canvas histogramLabelsChart non trovato! L\'istogramma non sarà disponibile.');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    showChartLoader(ctx);
+    
+    // Prepara i dati dal context template
+    const histogramData = {
+        labels: [],
+        values: [],
+        colors: [],
+        categories: []
+    };
+    
+    {% if label_stats %}
+    // Raccogli dati dalle etichette filtrate della tabella
+    {% for label in label_stats %}
+    histogramData.labels.push('{{ label.name|escapejs }}');
+    histogramData.values.push({{ label.usage_count }});
+    histogramData.colors.push('{{ label.color|default("#007bff") }}');
+    histogramData.categories.push('{{ (label.category_name or "Senza categoria")|escapejs }}');
+    {% endfor %}
+    {% endif %}
+    
+    console.log('📊 Dati istogramma:', histogramData);
+    
+    if (histogramData.labels.length === 0) {
+        showChartError(ctx, 'Nessuna etichetta disponibile nella tabella filtrata');
+        return;
+    }
+    
+    histogramLabelsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: histogramData.labels,
+            datasets: [{
+                label: 'Numero di Utilizzi',
+                data: histogramData.values,
+                backgroundColor: histogramData.colors.map(color => color + '80'), // Aggiungi trasparenza
+                borderColor: histogramData.colors,
+                borderWidth: 2,
+                hoverBackgroundColor: histogramData.colors.map(color => color + '99'),
+                hoverBorderColor: histogramData.colors
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Distribuzione Utilizzi Etichette',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            const categoryIndex = context.dataIndex;
+                            const category = histogramData.categories[categoryIndex];
+                            return [
+                                'Utilizzi: ' + context.raw,
+                                'Categoria: ' + category
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Numero di Utilizzi'
+                    },
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Etichette'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    console.log('✅ Istogramma etichette caricato con successo');
+}
+
+// Aggiorna legenda etichette
+function updateLabelsLegend(data) {
+    const legendContainer = document.getElementById('labelsChartLegend');
+    if (!legendContainer) return;
+    
+    let html = '<h6 class="mb-2">Etichette per categoria:</h6><div class="chart-legend">';
+    
+    // Raggruppa per categoria
+    const byCategory = {};
+    data.labels.forEach((label, index) => {
+        const category = data.categories[index];
+        if (!byCategory[category]) {
+            byCategory[category] = [];
+        }
+        byCategory[category].push({
+            name: label,
+            color: data.colors[index],
+            value: data.values[index]
+        });
+    });
+    
+    Object.entries(byCategory).forEach(([category, labels]) => {
+        html += `<div class="mb-2"><strong>${category}:</strong></div>`;
+        labels.forEach(label => {
+            html += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${label.color}"></div>
+                    <div class="legend-text">${label.name}</div>
+                    <div class="legend-value">${label.value}</div>
+                </div>
+            `;
+        });
+    });
+    
+    html += '</div>';
+    legendContainer.innerHTML = html;
+}
+
+// Aggiorna legenda etichette report
+function updateReportLabelsLegend(data) {
+    const legendContainer = document.getElementById('reportLabelsLegend');
+    if (!legendContainer) return;
+    
+    let html = '<h6 class="mb-2">Etichette del report per categoria:</h6><div class="chart-legend">';
+    
+    // Raggruppa per categoria
+    const byCategory = {};
+    data.labels.forEach((label, index) => {
+        const category = data.categories[index];
+        if (!byCategory[category]) {
+            byCategory[category] = [];
+        }
+        byCategory[category].push({
+            name: label,
+            color: data.colors[index],
+            value: data.values[index]
+        });
+    });
+    
+    Object.entries(byCategory).forEach(([category, labels]) => {
+        html += `<div class="mb-2"><strong>${category}:</strong></div>`;
+        labels.forEach(label => {
+            html += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${label.color}"></div>
+                    <div class="legend-text">${label.name}</div>
+                    <div class="legend-value">${label.value} commenti</div>
+                </div>
+            `;
+        });
+    });
+    
+    html += '</div>';
+    legendContainer.innerHTML = html;
+}
+
+// Aggiorna statistiche annotatori
+function updateAnnotatorsStats(data) {
+    const statsContainer = document.getElementById('annotatorsStats');
+    if (!statsContainer) return;
+    
+    const totalAnnotations = data.annotations.reduce((a, b) => a + b, 0);
+    const totalCells = data.cells.reduce((a, b) => a + b, 0);
+    const avgIntensity = totalCells > 0 ? (totalAnnotations / totalCells).toFixed(1) : 0;
+    
+    statsContainer.innerHTML = `
+        <div class="card bg-light">
+            <div class="card-body p-3">
+                <h6 class="card-title">Statistiche Generali</h6>
+                <small>
+                    <strong>Totale Annotazioni:</strong> ${totalAnnotations}<br>
+                    <strong>Totale Celle:</strong> ${totalCells}<br>
+                    <strong>Intensità Media:</strong> ${avgIntensity} ann./cella<br>
+                    <strong>Annotatori Attivi:</strong> ${data.labels.length}
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+// Aggiorna statistiche categorie
+function updateCategoriesStats(data) {
+    const statsContainer = document.getElementById('categoriesStats');
+    if (!statsContainer) return;
+    
+    const total = data.annotations.reduce((a, b) => a + b, 0);
+    const maxCategory = data.categories[data.annotations.indexOf(Math.max(...data.annotations))];
+    const maxValue = Math.max(...data.annotations);
+    const percentage = ((maxValue / total) * 100).toFixed(1);
+    
+    statsContainer.innerHTML = `
+        <div class="card bg-light">
+            <div class="card-body p-3">
+                <h6 class="card-title">Analisi Tematica</h6>
+                <small>
+                    <strong>Categoria Predominante:</strong><br>
+                    ${maxCategory} (${maxValue} annotazioni, ${percentage}%)<br><br>
+                    <strong>Totale Categorie:</strong> ${data.categories.length}<br>
+                    <strong>Distribuzione:</strong> ${data.categories.length > 1 ? 'Diversificata' : 'Concentrata'}
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+// Aggiorna statistiche copertura
+function updateCoverageStats(data) {
+    const statsContainer = document.getElementById('coverageStats');
+    if (!statsContainer) return;
+    
+    const qualityLevel = data.coverage_percentage >= 80 ? 'Ottima' : 
+                        data.coverage_percentage >= 60 ? 'Buona' : 
+                        data.coverage_percentage >= 40 ? 'Discreta' : 'Bassa';
+    const qualityClass = data.coverage_percentage >= 80 ? 'success' : 
+                        data.coverage_percentage >= 60 ? 'info' : 
+                        data.coverage_percentage >= 40 ? 'warning' : 'danger';
+    
+    statsContainer.innerHTML = `
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center p-2">
+                    <h6 class="text-primary">${data.total_cells}</h6>
+                    <small>Celle Totali</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center p-2">
+                    <h6 class="text-success">${data.annotated_cells}</h6>
+                    <small>Celle Annotate</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center p-2">
+                    <h6 class="text-${qualityClass}">${data.coverage_percentage.toFixed(1)}%</h6>
+                    <small>Copertura</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center p-2">
+                    <h6 class="text-${qualityClass}">${qualityLevel}</h6>
+                    <small>Qualità</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Mostra loader per grafico
+function showChartLoader(ctx) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Caricamento...', ctx.canvas.width / 2, ctx.canvas.height / 2);
+}
+
+// Ottieni filtri correnti per i grafici
+function getCurrentChartFilters() {
+    const categoryFilter = document.getElementById('chart-category-filter');
+    const labelFilter = document.getElementById('chart-label-filter');
+    const minUsage = document.getElementById('chart-min-usage');
+    const maxUsage = document.getElementById('chart-max-usage');
+    
+    const filters = {};
+    
+    if (categoryFilter && categoryFilter.value) {
+        filters.category = categoryFilter.value;
+    }
+    
+    if (labelFilter && labelFilter.value.trim()) {
+        filters.label_name = labelFilter.value.trim();
+    }
+    
+    if (minUsage && minUsage.value) {
+        filters.min_usage = minUsage.value;
+    }
+    
+    if (maxUsage && maxUsage.value) {
+        filters.max_usage = maxUsage.value;
+    }
+    
+    return filters;
+}
+
+// Ottieni descrizione dei filtri applicati
+function getFilterDescription() {
+    const filters = getCurrentChartFilters();
+    const descriptions = [];
+    
+    if (filters.category) {
+        descriptions.push(`Categoria: ${filters.category}`);
+    }
+    
+    if (filters.label_name) {
+        descriptions.push(`Etichetta: "${filters.label_name}"`);
+    }
+    
+    if (filters.min_usage) {
+        descriptions.push(`Min: ${filters.min_usage}`);
+    }
+    
+    if (filters.max_usage) {
+        descriptions.push(`Max: ${filters.max_usage}`);
+    }
+    
+    if (descriptions.length > 0) {
+        return `(Filtri: ${descriptions.join(', ')})`;
+    }
+    
+    return '';
+}
+
+// Aggiorna tutti i grafici con i filtri correnti
+function updateAllCharts() {
+    console.log('🔄 Aggiornamento tutti i grafici...');
+    
+    // Protezione filtri prima dell'aggiornamento
+    protectChartFilters();
+    
+    const updateBtn = document.getElementById('update-charts-btn');
+    if (updateBtn) {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Aggiornando...';
+    }
+    
+    const activeTab = document.querySelector('.nav-link.active');
+    const filters = getCurrentChartFilters();
+    
+    console.log('📊 Filtri applicati:', filters);
+    
+    // Aggiorna stato filtri
+    updateFilterStatus(filters);
+    
+    try {
+        // Aggiorna sempre il grafico del report (visibile sempre)
+        loadHistogramLabelsChart();
+        
+        if (activeTab) {
+            const tabId = activeTab.id;
+            console.log(`🎯 Tab attivo: ${tabId}`);
+            
+            if (tabId === 'labels-chart-tab') {
+                loadLabelsChart();
+            } else if (tabId === 'annotators-chart-tab') {
+                loadAnnotatorsChart();
+            } else if (tabId === 'categories-chart-tab') {
+                loadCategoriesChart();
+            } else if (tabId === 'coverage-chart-tab') {
+                loadCoverageCharts();
+            }
+        } else {
+            console.log('🎯 Nessun tab attivo, carico grafici etichette di default');
+            loadLabelsChart();
+        }
+    } catch (error) {
+        console.error('❌ Errore durante aggiornamento grafici:', error);
+    } finally {
+        // Ripristina il pulsante dopo un delay
+        setTimeout(() => {
+            if (updateBtn) {
+                updateBtn.disabled = false;
+                updateBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Aggiorna';
+            }
+        }, 1000);
+    }
+}
+
+// Reset filtri dei grafici
+function resetChartFilters() {
+    console.log('🔄 Reset filtri grafici...');
+    
+    // Protezione filtri
+    protectChartFilters();
+    
+    const categoryFilter = document.getElementById('chart-category-filter');
+    const labelFilter = document.getElementById('chart-label-filter');
+    const minUsage = document.getElementById('chart-min-usage');
+    const maxUsage = document.getElementById('chart-max-usage');
+    
+    if (categoryFilter) categoryFilter.value = '';
+    if (labelFilter) labelFilter.value = '';
+    if (minUsage) minUsage.value = '';
+    if (maxUsage) maxUsage.value = '';
+    
+    updateFilterStatus({});
+    updateAllCharts();
+    
+    console.log('✅ Reset filtri completato');
+}
+
+// Aggiorna stato dei filtri
+function updateFilterStatus(filters) {
+    const statusElement = document.getElementById('chart-filter-status');
+    if (!statusElement) return;
+    
+    const filterCount = Object.keys(filters).length;
+    
+    if (filterCount > 0) {
+        statusElement.innerHTML = `<span class="badge bg-info">${filterCount} filtro${filterCount > 1 ? 'i' : ''} attivo${filterCount > 1 ? 'i' : ''}</span>`;
+    } else {
+        statusElement.innerHTML = '<span class="badge bg-secondary">Nessun filtro</span>';
+    }
+}
+
+// Mostra loader per grafico
+function showChartLoader(ctx) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Caricamento...', ctx.canvas.width / 2, ctx.canvas.height / 2);
+}
+
+// Mostra errore per grafico
+function showChartError(ctx, message) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#dc3545';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(message, ctx.canvas.width / 2, ctx.canvas.height / 2);
+}
+
+// Carica grafico categorie (aggiornato con filtri)
+function loadCategoriesChart() {
+    if (categoriesChart) {
+        categoriesChart.destroy();
+    }
+    
+    const canvas = document.getElementById('categoriesDistributionChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    showChartLoader(ctx);
+    
+    // Ottieni filtri correnti
+    const filters = getCurrentChartFilters();
+    const queryString = new URLSearchParams(filters).toString();
+    
+    fetch(`/statistics/api/question_chart_data/{{ file.id }}/categories_distribution?${queryString}&question={{ question|urlencode }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.categories.length === 0) {
+                showChartError(ctx, 'Nessuna categoria trovata con i filtri applicati');
+                updateCategoriesStats({categories: [], annotations: [], labels_count: []});
+                return;
+            }
+            
+            const colors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+                '#4BC0C0', '#FF6384', '#36A2EB', '#FFCE56'
+            ];
+            
+            categoriesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.categories,
+                    datasets: [{
+                        label: 'Annotazioni',
+                        data: data.annotations,
+                        backgroundColor: colors.slice(0, data.categories.length),
+                        borderColor: colors.slice(0, data.categories.length).map(color => color),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Distribuzione per categoria tematica ${getFilterDescription()}`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = data.annotations.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    const labelCount = data.labels_count[context.dataIndex];
+                                    return [
+                                        `${context.label}: ${context.parsed} annotazioni (${percentage}%)`,
+                                        `Etichette uniche: ${labelCount}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+            
+            // Aggiorna statistiche categorie
+            updateCategoriesStats(data);
+        })
+        .catch(error => {
+            console.error('Errore nel caricamento del grafico categorie:', error);
+            showChartError(ctx, 'Errore nel caricamento dei dati delle categorie');
+        });
+}
+
+// Carica grafici di copertura (aggiornato con filtri)
+function loadCoverageCharts() {
+    const canvas1 = document.getElementById('coverageOverviewChart');
+    const canvas2 = document.getElementById('coverageDistributionChart');
+    
+    if (!canvas1 || !canvas2) return;
+    
+    const ctx1 = canvas1.getContext('2d');
+    const ctx2 = canvas2.getContext('2d');
+    
+    showChartLoader(ctx1);
+    showChartLoader(ctx2);
+    
+    // Ottieni filtri correnti
+    const filters = getCurrentChartFilters();
+    const queryString = new URLSearchParams(filters).toString();
+    
+    fetch(`/statistics/api/question_chart_data/{{ file.id }}/{{ question|urlencode }}/coverage_analysis?${queryString}`)
+        .then(response => response.json())
+        .then(data => {
+            // Grafico overview copertura
+            if (coverageOverviewChart) {
+                coverageOverviewChart.destroy();
+            }
+            
+            const filterSuffix = data.filtered ? ' (Filtrato)' : '';
+            
+            coverageOverviewChart = new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: ['Celle Annotate', 'Celle Non Annotate'],
+                    datasets: [{
+                        data: [data.annotated_cells, data.unannotated_cells],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderColor: ['#28a745', '#dc3545'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Copertura: ${data.coverage_percentage.toFixed(1)}%${filterSuffix}`,
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const percentage = ((context.parsed / data.total_cells) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} celle (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Grafico distribuzione intensità
+            if (coverageDistributionChart) {
+                coverageDistributionChart.destroy();
+            }
+            
+            if (data.distribution_labels.length === 0) {
+                showChartError(ctx2, 'Nessun dato di distribuzione con i filtri applicati');
+            } else {
+                coverageDistributionChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: data.distribution_labels,
+                        datasets: [{
+                            label: 'Numero di celle',
+                            data: data.distribution_values,
+                            backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `Intensità di annotazione${filterSuffix}`,
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Numero di celle'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Annotazioni per cella'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Aggiorna statistiche copertura
+            updateCoverageStats(data);
+        })
+        .catch(error => {
+            console.error('Errore nel caricamento dei grafici di copertura:', error);
+            showChartError(ctx1, 'Errore nei dati di copertura');
+            showChartError(ctx2, 'Errore nei dati di distribuzione');
+        });
+}
+
+// Setup filtri (funzionalità esistenti)
+function setupFilters() {
+    const form = document.getElementById('label-filters-form');
+    if (!form) return;
+    
+    const inputs = form.querySelectorAll('input[type="text"], input[type="number"]');
+    
+    // Aggiungi debounce per evitare troppe richieste
+    let timeout;
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                // Auto-submit è disabilitato di default
+            }, 1000);
+        });
+    });
+    
+    // Evidenzia automaticamente se c'è un termine di ricerca
+    const searchInput = document.getElementById('label-name-filter');
+    if (searchInput && searchInput.value) {
+        toggleHighlight();
+    }
+    
+    // Aggiungi contatori in tempo reale
+    updateFilterCounters();
+}
+
+// Export CSV delle etichette filtrate
+function exportLabelsCSV() {
+    const table = document.getElementById('labels-table');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
+    
+    if (rows.length === 0) {
+        alert('Nessuna etichetta da esportare!');
+        return;
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Etichetta,Categoria,Utilizzi\n";
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const labelName = cells[0].querySelector('.label-badge').textContent.trim();
+        const category = cells[1].textContent.trim();
+        const usage = cells[2].querySelector('strong').textContent.trim();
+        
+        csvContent += `"${labelName}","${category}","${usage}"\n`;
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "etichette_quesito_{{ question|replace(' ', '_') }}_{{ file.filename|replace('.xlsx', '') }}.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Export report completo in vari formati
+function exportCompleteReport(format) {
+    if (format === 'pdf') {
+        // Per PDF, apriamo una finestra di stampa
+        window.print();
+    } else {
+        console.log(`Export in formato ${format} non supportato lato client`);
+        alert(`Usa i pulsanti di esportazione diretti per il formato ${format.toUpperCase()}`);
+    }
+}
+
+// Toggle evidenziazione termini cercati
+function toggleHighlight() {
+    highlightEnabled = !highlightEnabled;
+    const searchInput = document.getElementById('label-name-filter');
+    if (!searchInput) return;
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    const badges = document.querySelectorAll('.label-badge');
+    
+    badges.forEach(badge => {
+        if (highlightEnabled && searchTerm) {
+            const text = badge.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                badge.style.boxShadow = '0 0 10px #ffc107';
+                badge.style.border = '2px solid #ffc107';
+            }
+        } else {
+            badge.style.boxShadow = '';
+            badge.style.border = '';
+        }
+    });
+    
+    // Cambia icona del pulsante
+    const btn = event.target.closest('button');
+    if (btn) {
+        const icon = btn.querySelector('i');
+        if (highlightEnabled) {
+            icon.className = 'bi bi-highlighter-fill';
+            btn.classList.add('active');
+        } else {
+            icon.className = 'bi bi-highlighter';
+            btn.classList.remove('active');
+        }
+    }
+}
+
+// Aggiorna contatori dei filtri
+function updateFilterCounters() {
+    const table = document.getElementById('labels-table');
+    if (!table) return;
+    
+    const totalRows = table.querySelectorAll('tbody tr').length;
+    const visibleRows = table.querySelectorAll('tbody tr:not([style*="display: none"])').length;
+    
+    // Aggiorna il contatore se necessario
+    const counter = document.querySelector('.text-muted small');
+    if (counter && totalRows !== visibleRows) {
+        counter.innerHTML = `<i class="bi bi-info-circle me-1"></i>Visualizzate ${visibleRows} di ${totalRows} etichette <span class="badge bg-secondary ms-1">Filtrate</span>`;
+    }
+}
+
+// Funzione per reset rapido dei filtri
+function resetFilters() {
+    window.location.href = "{{ url_for('statistics.question_detail', file_id=file.id, question=question) }}";
+}
+
+// Shortcuts da tastiera
+document.addEventListener('keydown', function(e) {
+    // Ctrl+F per focus sulla ricerca
+    if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.getElementById('label-name-filter');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+    
+    // Escape per reset filtri
+    if (e.key === 'Escape') {
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.id === 'label-name-filter' || activeElement.name)) {
+            resetFilters();
+        }
+    }
+});
+
+// Tooltip per spiegare i filtri
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi tooltip se Bootstrap è disponibile
+    if (typeof bootstrap !== 'undefined') {
+        const tooltipElements = document.querySelectorAll('[title]');
+        tooltipElements.forEach(el => {
+            new bootstrap.Tooltip(el);
+        });
+    }
+});
+</script>
+
+{% endblock %}

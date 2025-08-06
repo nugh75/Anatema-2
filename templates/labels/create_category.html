@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Nuova Categoria -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_labels') }}">Etichette</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_categories') }}">Categorie</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Nuova Categoria</li>
+            </ol>
+        </nav>
+        
+        <h2>
+            <i class="bi bi-plus-circle me-2"></i>Nuova Categoria
+        </h2>
+        <p class="text-muted">Crea una nuova categoria per organizzare le tue etichette</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-collection me-2"></i>Informazioni Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    {% if request.args.get('next') %}
+                    <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Nome univoco per identificare la categoria
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Descrizione opzionale della categoria
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.color.label(class="form-label") }}
+                                <div class="d-flex align-items-center">
+                                    {{ form.color(class="form-control form-control-color me-2", style="width: 60px; height: 38px;") }}
+                                    <span id="colorPreview" class="badge" style="background-color: #6c757d; color: white; padding: 8px 12px;">
+                                        Anteprima
+                                    </span>
+                                </div>
+                                {% if form.color.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.color.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {{ form.color.description }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Stato</label>
+                                <div class="form-check">
+                                    {{ form.is_active(class="form-check-input") }}
+                                    {{ form.is_active.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-text">
+                                    Solo le categorie attive sono disponibili per le nuove etichette
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Crea Categoria
+                        </button>
+                        <a href="{{ url_for('labels.list_categories') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i>Annulla
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Suggerimenti
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>Categorie Comuni:</h6>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-primary me-2">Emozioni</span> per sentimenti e stati d'animo</li>
+                    <li><span class="badge bg-success me-2">Opinioni</span> per valutazioni e giudizi</li>
+                    <li><span class="badge bg-info me-2">Strategie</span> per metodi e approcci</li>
+                    <li><span class="badge bg-warning me-2">Problemi</span> per difficoltà e criticità</li>
+                    <li><span class="badge bg-danger me-2">Soluzioni</span> per proposte e rimedi</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Consigli:</h6>
+                <ul class="small text-muted">
+                    <li>Usa nomi brevi e descrittivi</li>
+                    <li>Scegli colori distintivi</li>
+                    <li>Evita categorie troppo generiche</li>
+                    <li>Organizza le etichette logicamente</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.getElementById('color');
+    const colorPreview = document.getElementById('colorPreview');
+    
+    // Aggiorna l'anteprima del colore
+    function updateColorPreview() {
+        const color = colorInput.value;
+        colorPreview.style.backgroundColor = color;
+        colorPreview.textContent = color.toUpperCase();
+        
+        // Calcola se usare testo bianco o nero basato sulla luminanza
+        const r = parseInt(color.substr(1, 2), 16);
+        const g = parseInt(color.substr(3, 2), 16);
+        const b = parseInt(color.substr(5, 2), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        
+        colorPreview.style.color = luminance > 0.5 ? '#000' : '#fff';
+    }
+    
+    // Aggiorna all'avvio e quando cambia il colore
+    updateColorPreview();
+    colorInput.addEventListener('change', updateColorPreview);
+    colorInput.addEventListener('input', updateColorPreview);
+    
+    // Auto-focus sul primo campo
+    document.getElementById('name').focus();
+});
+</script>
+{% endblock %}

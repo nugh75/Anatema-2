@@ -1,0 +1,38 @@
+﻿categorie,etichette usate (raggruppate),etichetta raggruppata
+Impatti sugli studenti,Accessibilità; Inclusione; Supporto Tecnico (lettura/strumenti); Traduzione; Traduzioni; Sintesi vocali,S1 — Accessibilità e inclusione
+Impatti sugli studenti,Esigenza del singolo; Apprendimento adattivo,S2 — Personalizzazione e adattività
+Impatti sugli studenti,Autonomia; Autocorrezione; Creazione prove di verifiche da parte degli studenti; Tutoraggio esame,S3 — Autonomia e autocorrezione
+Impatti sugli studenti,Coinvolgimento dello studente; Aumento motivazione; Stimola l’interesse; Interazione; Strumenti interattivi; Stimola gli studenti a fare meglio; Clima inclusivo e divertente,S4 — Motivazione e coinvolgimento
+Impatti sugli studenti,Comprensione; Focalizzazione concetti di base; Esempi; Selezione elementi importanti; Simulazione,S5 — Comprensione e focalizzazione
+Impatti sugli studenti,Creatività; Creazione presentazioni; Rielaborazione dei contenuti; Autocreazione di contenuti; Varietà,S6 — Creatività e produzione
+Impatti sugli studenti,Supporto allo studio; Creazione di esercizi per studenti; Ricerca e Studio; Ricerca; (Feedback/Immediatezza quando legati allo studio),S7 — Supporto allo studio
+Impatti sugli studenti,Mappe; Schemi; Riassunti; Memorizzazione; Organizzazione,S8 — Memoria e organizzazione
+Impatti sugli studenti,Soft skills; Stimola la curiosità,S9 — Soft skills e cittadinanza digitale
+Impatti sul docente,Velocizzazione attività docente; Facilitazione del lavoro del docente; Facilitazione dell’editing; Ricerca di contenuti,D1 — Efficienza e risparmio di tempo
+Impatti sul docente,Attualizzazione dei materiali; Miglioramento creazione prove di valutazione; Qualità dei prodotti costruiti; Sintetizzazione degli argomenti; Selezione elementi importanti,D2 — Qualità di lezioni e materiali
+Impatti sul docente,Proposte attività innovative; Creazione di nuovi strumenti,D3 — Innovazione didattica
+Impatti sul docente,Comunicazione efficace,D4 — Comunicazione didattica
+Impatti sul docente,Qualità dell’attività del docente (focalizzare le energie),D5 — Focalizzazione sul nucleo del lavoro
+Rischi/Sentiment,Aspetti etici; Utilizzo consapevole,R1 — Etica e uso consapevole
+Rischi/Sentiment,Negativo (appiattimento); Semplificazione (perdita di contenuti),R2 — Criticità: eccessiva semplificazione
+Rischi/Sentiment,Non utilizzo,R3 — Non adozione/Avvio
+Rischi/Sentiment,Scetticismo; Neutro,R4 — Scetticismo/Neutro
+Tag tecnici (trasversali),Semplificazione; Riassunti; Schemi; Mappe; Sintetizzazione degli argomenti,T1 — Semplificazione/Sintesi
+Tag tecnici (trasversali),Traduzione; Traduzioni; Sintesi vocali; Intercomprensione,T2 — Traduzione/Intercomprensione
+Tag tecnici (trasversali),Visualizzazioni; Grafici; Video; Simulazione,T3 — Visualizzazioni
+Tag tecnici (trasversali),Creazione di esercizi per studenti; Miglioramento creazione prove di valutazione; Tutoraggio esame,T4 — Esercizi e valutazione
+Tag tecnici (trasversali),Feedback; Immediatezza,T5 — Feedback automatizzato
+Tag tecnici (trasversali),Ricerca; Ricerca e Studio; Ricerca di contenuti,T6 — Ricerca
+Tag tecnici (trasversali),Attualizzazione dei materiali,T7 — Attualizzazione
+Tipologia di prompt,Prompt livello 0,P0 — Prompt base (parola chiave/istruzione minimale)
+Tipologia di prompt,Prompt livello 1,"P1 — Istruzione semplice (un’azione chiara, poco contesto)"
+Tipologia di prompt,Prompt livello 2,"P2 — Istruzione con vincoli/regole (più criteri, tono, formato)"
+Tipologia di prompt,Prompt livello 3,"P3 — Task articolato (multi-vincolo, output strutturati o multipli)"
+Funzione del prompt,Riassunti; Spiegazione; Schemi,"F1 — Sintesi e spiegazione (riassumere, spiegare, schematizzare)"
+Funzione del prompt,Riscrittura del testo; Correzione di bozze,"F2 — Riformulazione e revisione (riscrivere, correggere, migliorare stile)"
+Funzione del prompt,Traduzioni,F3 — Traduzione/Intercomprensione
+Funzione del prompt,Scaletta argomenti,F4 — Strutturazione contenuti (outline/scalette)
+Funzione del prompt,Informazioni bibliografiche; Ricerca e Studio,"F5 — Ricerca e citazioni (fonti, riferimenti, bibliografie)"
+Funzione del prompt,Creazione di esercizi per studenti,"F6 — Esercizi e valutazione (quiz, domande, prove)"
+Funzione del prompt,Esempi,"F7 — Esempi e definizioni (esempi, sinonimi, casi)"
+Funzione del prompt,Immagini; Video,"F8 — Media generativi (immagini, video, prompt per output visivi)"

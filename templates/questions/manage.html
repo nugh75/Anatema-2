@@ -1,0 +1,854 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Domande -Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-patch-question me-2"></i>Gestione Domande
+                    </h2>
+                    <p class="text-muted mb-0">Classifica manualmente i tipi di domande per migliorare il sistema di annotazione</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('annotation.browse_annotations') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna alle Annotazioni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ total_questions }}</h3>
+                    <p class="mb-0">Domande Totali</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ total_classified }}</h3>
+                    <p class="mb-0">Già Classificate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ total_questions - total_classified }}</h3>
+                    <p class="mb-0">Da Classificare</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ files|length }}</h3>
+                    <p class="mb-0">File Caricati</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra degli strumenti per azioni di massa -->
+    <div class="row mb-4" id="bulk-actions-bar" style="display: none;">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <span class="fw-bold">
+                                <span id="selected-count">0</span> domande selezionate
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="bulk-type-select">
+                                <option value="">Seleziona classificazione...</option>
+                                {% for type_key, type_display, type_desc in question_types %}
+                                <option value="{{ type_key }}">{{ type_display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-success" onclick="applyBulkClassification()">
+                                    <i class="bi bi-check-circle me-1"></i>Applica a Selezionate
+                                </button>
+                                <button class="btn btn-warning" onclick="getBulkSuggestions()">
+                                    <i class="bi bi-lightbulb me-1"></i>Suggerimenti AI
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="bulkReset()">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Selezionate
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearSelection()">
+                                    <i class="bi bi-x-circle me-1"></i>Deseleziona Tutto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtri di ricerca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtri di Ricerca</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="search-filter" class="form-label">Cerca nelle domande</label>
+                            <input type="text" class="form-control" id="search-filter" 
+                                   placeholder="Es: età, nome, valutazione..." 
+                                   oninput="applyFilters()">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="status-filter" class="form-label">Stato</label>
+                            <select class="form-select" id="status-filter" onchange="applyFilters()">
+                                <option value="">Tutte</option>
+                                <option value="classified">Già classificate</option>
+                                <option value="unclassified">Da classificare</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="type-filter" class="form-label">Tipo Attuale</label>
+                            <select class="form-select" id="type-filter" onchange="applyFilters()">
+                                <option value="">Tutti i tipi</option>
+                                {% for type_key, type_display, type_desc in question_types %}
+                                <option value="{{ type_key }}">{{ type_display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="file-filter" class="form-label">File</label>
+                            <select class="form-select" id="file-filter" onchange="applyFilters()">
+                                <option value="">Tutti i file</option>
+                                {% for file in files %}
+                                <option value="{{ file.file_id }}">{{ file.filename }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Azioni</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="expandAllFiles()">
+                                    <i class="bi bi-arrows-expand"></i> Espandi
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="collapseAllFiles()">
+                                    <i class="bi bi-arrows-collapse"></i> Collassa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domande raggruppate per file -->
+    <div class="row">
+        <div class="col-12">
+            {% if files %}
+            <div class="accordion" id="filesAccordion">
+                {% for file in files %}
+                <div class="accordion-item file-section" data-file-id="{{ file.file_id }}">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button{% if loop.index > 1 %} collapsed{% endif %}" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#collapse{{ file.file_id }}"
+                                aria-expanded="{% if loop.index == 1 %}true{% else %}false{% endif %}"
+                                aria-controls="collapse{{ file.file_id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>
+                                    <strong>{{ file.filename }}</strong>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="badge bg-primary">{{ file.total_questions }} domande</span>
+                                    <span class="badge bg-success">{{ file.classified_questions }} classificate</span>
+                                    <span class="badge bg-warning">{{ file.total_questions - file.classified_questions }} da classificare</span>
+                                    <div class="form-check">
+                                        <input class="form-check-input file-select-all" 
+                                               type="checkbox" 
+                                               id="file-select-all-{{ file.file_id }}"
+                                               onchange="toggleFileSelectAll({{ file.file_id }}, this)"
+                                               onclick="event.stopPropagation()">
+                                        <label class="form-check-label" for="file-select-all-{{ file.file_id }}">
+                                            <small>Seleziona tutto</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ file.file_id }}" 
+                         class="accordion-collapse collapse{% if loop.index == 1 %} show{% endif %}"
+                         data-bs-parent="#filesAccordion">
+                        <div class="accordion-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 5%;">
+                                                <input type="checkbox" class="form-check-input" 
+                                                       id="select-all-{{ file.file_id }}" 
+                                                       onchange="toggleSelectAllInFile({{ file.file_id }}, this)">
+                                            </th>
+                                            <th style="width: 5%;">#</th>
+                                            <th style="width: 50%;">Domanda</th>
+                                            <th style="width: 10%;">Celle</th>
+                                            <th style="width: 20%;">Tipo Attuale</th>
+                                            <th style="width: 10%;">Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for question in file.questions %}
+                                        <tr class="question-row" 
+                                            data-question-name="{{ question.column_name }}" 
+                                            data-file-id="{{ file.file_id }}"
+                                            data-classified="{{ 'true' if question.classified_cells else 'false' }}"
+                                            data-current-type="{{ question.types_used or '' }}">
+                                            <td>
+                                                <input type="checkbox" 
+                                                       class="form-check-input question-checkbox" 
+                                                       value="{{ question.column_name }}" 
+                                                       data-file-id="{{ file.file_id }}"
+                                                       onchange="updateSelection()">
+                                            </td>
+                                            <td class="text-center fw-bold text-muted">
+                                                {{ loop.index }}
+                                            </td>
+                                            <td>
+                                                <div class="question-text">
+                                                    <strong>{{ question.column_name }}</strong>
+                                                    {% if question.column_name|length > 100 %}
+                                                    <br><small class="text-muted">Testo completo mostrato sopra</small>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ question.total_cells }}</span>
+                                                {% if question.classified_cells %}
+                                                <br><small class="text-success">{{ question.classified_cells }} classificate</small>
+                                                {% else %}
+                                                <br><small class="text-warning">Non classificate</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div id="current-type-{{ file.file_id }}-{{ loop.index }}">
+                                                    {% if question.types_used and question.types_used != 'None' %}
+                                                        {% set types = question.types_used.split(',') %}
+                                                        {% for type in types %}
+                                                            {% if type and type != 'None' %}
+                                                            <span class="badge me-1
+                                                                {% if type == 'aperta' %}bg-success
+                                                                {% elif type == 'anagrafica' %}bg-info
+                                                                {% elif type == 'chiusa_binaria' %}bg-secondary
+                                                                {% elif type == 'chiusa_multipla' %}bg-primary
+                                                                {% elif type == 'likert' %}bg-warning
+                                                                {% elif type == 'numerica' %}bg-dark
+                                                                {% else %}bg-light text-dark
+                                                                {% endif %}">
+                                                                {% if type == 'aperta' %}🔓 Aperta
+                                                                {% elif type == 'anagrafica' %}👤 Anagrafica
+                                                                {% elif type == 'chiusa_binaria' %}✅ Sì/No
+                                                                {% elif type == 'chiusa_multipla' %}☑️ Multipla
+                                                                {% elif type == 'likert' %}📊 Likert
+                                                                {% elif type == 'numerica' %}🔢 Numerica
+                                                                {% else %}{{ type }}
+                                                                {% endif %}
+                                                            </span>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                    <span class="text-muted">Non classificata</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group-vertical" role="group">
+                                                    <button class="btn btn-sm btn-outline-info" 
+                                                            onclick="showQuestionDetails('{{ question.column_name }}', {{ file.file_id }}, {{ loop.index }})"
+                                                            title="Dettagli">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    {% if question.classified_cells %}
+                                                    <button class="btn btn-sm btn-outline-warning" 
+                                                            onclick="resetQuestion('{{ question.column_name }}', {{ file.file_id }}, {{ loop.index }})"
+                                                            title="Reset">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-center py-5">
+                        <i class="bi bi-question-circle display-4 text-muted mb-3"></i>
+                        <h6 class="text-muted">Nessuna Domanda Trovata</h6>
+                        <p class="text-muted">Carica alcuni file Excel per iniziare a classificare le domande.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast per notifiche -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notification-toast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto">Notifica</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+        </div>
+    </div>
+</div>
+
+<script>
+// Variabili globali
+let selectedQuestions = new Set();
+let allQuestions = [];
+
+// Inizializza la pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Costruisci l'array di tutte le domande
+    document.querySelectorAll('.question-checkbox').forEach(checkbox => {
+        allQuestions.push(checkbox.value);
+    });
+    
+    // Applica filtri iniziali se necessario
+    applyFilters();
+});
+
+// Gestione selezione multipla
+function toggleSelectAll(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.question-checkbox:not([style*="display: none"])');
+    const isChecked = masterCheckbox.checked;
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
+        if (isChecked) {
+            selectedQuestions.add(checkbox.value);
+        } else {
+            selectedQuestions.delete(checkbox.value);
+        }
+    });
+    
+    updateSelection();
+}
+
+function updateSelection() {
+    // Aggiorna l'insieme delle domande selezionate
+    selectedQuestions.clear();
+    document.querySelectorAll('.question-checkbox:checked').forEach(checkbox => {
+        selectedQuestions.add(checkbox.value);
+    });
+    
+    // Aggiorna l'interfaccia
+    const count = selectedQuestions.size;
+    document.getElementById('selected-count').textContent = count;
+    
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    if (count > 0) {
+        bulkBar.style.display = 'block';
+    } else {
+        bulkBar.style.display = 'none';
+    }
+    
+    // Aggiorna stato dei checkbox "seleziona tutto" per ogni file
+    document.querySelectorAll('.file-section').forEach(fileSection => {
+        const fileId = fileSection.dataset.fileId;
+        const fileCheckbox = fileSection.querySelector(`#select-all-${fileId}`);
+        const fileSelectAllCheckbox = fileSection.querySelector(`#file-select-all-${fileId}`);
+        
+        if (fileCheckbox) {
+            const visibleCheckboxes = fileSection.querySelectorAll('.question-checkbox:not([style*="display: none"])');
+            const checkedVisible = fileSection.querySelectorAll('.question-checkbox:checked:not([style*="display: none"])');
+            
+            if (checkedVisible.length === 0) {
+                fileCheckbox.checked = false;
+                fileCheckbox.indeterminate = false;
+                if (fileSelectAllCheckbox) fileSelectAllCheckbox.checked = false;
+            } else if (checkedVisible.length === visibleCheckboxes.length) {
+                fileCheckbox.checked = true;
+                fileCheckbox.indeterminate = false;
+                if (fileSelectAllCheckbox) fileSelectAllCheckbox.checked = true;
+            } else {
+                fileCheckbox.checked = false;
+                fileCheckbox.indeterminate = true;
+                if (fileSelectAllCheckbox) fileSelectAllCheckbox.checked = false;
+            }
+        }
+    });
+}
+
+function clearSelection() {
+    selectedQuestions.clear();
+    document.querySelectorAll('.question-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelection();
+}
+
+// Filtri di ricerca
+function applyFilters() {
+    const searchTerm = document.getElementById('search-filter').value.toLowerCase();
+    const statusFilter = document.getElementById('status-filter').value;
+    const typeFilter = document.getElementById('type-filter').value;
+    const fileFilter = document.getElementById('file-filter').value;
+    
+    // Applica filtri per file
+    document.querySelectorAll('.file-section').forEach(fileSection => {
+        const fileId = fileSection.dataset.fileId;
+        let fileVisible = !fileFilter || fileFilter === fileId;
+        
+        if (fileVisible) {
+            fileSection.style.display = '';
+            
+            // Applica filtri alle domande del file
+            let hasVisibleQuestions = false;
+            fileSection.querySelectorAll('.question-row').forEach(row => {
+                const questionName = row.dataset.questionName.toLowerCase();
+                const isClassified = row.dataset.classified === 'true';
+                const currentType = row.dataset.currentType;
+                
+                let visible = true;
+                
+                // Filtro testo
+                if (searchTerm && !questionName.includes(searchTerm)) {
+                    visible = false;
+                }
+                
+                // Filtro stato
+                if (statusFilter === 'classified' && !isClassified) {
+                    visible = false;
+                } else if (statusFilter === 'unclassified' && isClassified) {
+                    visible = false;
+                }
+                
+                // Filtro tipo
+                if (typeFilter && !currentType.includes(typeFilter)) {
+                    visible = false;
+                }
+                
+                row.style.display = visible ? '' : 'none';
+                if (visible) hasVisibleQuestions = true;
+            });
+            
+            // Nascondi il file se non ha domande visibili
+            if (!hasVisibleQuestions) {
+                fileSection.style.display = 'none';
+            }
+        } else {
+            fileSection.style.display = 'none';
+        }
+    });
+    
+    updateSelection();
+}
+
+// Gestione accordion
+function expandAllFiles() {
+    document.querySelectorAll('.accordion-collapse').forEach(collapse => {
+        new bootstrap.Collapse(collapse, { show: true });
+    });
+}
+
+function collapseAllFiles() {
+    document.querySelectorAll('.accordion-collapse').forEach(collapse => {
+        new bootstrap.Collapse(collapse, { hide: true });
+    });
+}
+
+// Gestione selezione per file
+function toggleFileSelectAll(fileId, checkbox) {
+    const fileSection = document.querySelector(`[data-file-id="${fileId}"]`);
+    const questionCheckboxes = fileSection.querySelectorAll('.question-checkbox:not([style*="display: none"])');
+    
+    questionCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+        if (checkbox.checked) {
+            selectedQuestions.add(cb.value);
+        } else {
+            selectedQuestions.delete(cb.value);
+        }
+    });
+    
+    updateSelection();
+}
+
+function toggleSelectAllInFile(fileId, checkbox) {
+    const fileSection = document.querySelector(`[data-file-id="${fileId}"]`);
+    const questionCheckboxes = fileSection.querySelectorAll('.question-checkbox:not([style*="display: none"])');
+    
+    questionCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+        if (checkbox.checked) {
+            selectedQuestions.add(cb.value);
+        } else {
+            selectedQuestions.delete(cb.value);
+        }
+    });
+    
+    updateSelection();
+}
+
+// Classificazione multipla
+function applyBulkClassification() {
+    const questionType = document.getElementById('bulk-type-select').value;
+    
+    if (!questionType) {
+        showToast('Seleziona un tipo di classificazione', 'warning');
+        return;
+    }
+    
+    if (selectedQuestions.size === 0) {
+        showToast('Nessuna domanda selezionata', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Sei sicuro di voler classificare ${selectedQuestions.size} domande come "${questionType}"?`)) {
+        return;
+    }
+    
+    fetch('{{ url_for("questions.bulk_classify") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            question_names: Array.from(selectedQuestions),
+            question_type: questionType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Errore di rete', 'error');
+    });
+}
+
+function bulkReset() {
+    if (selectedQuestions.size === 0) {
+        showToast('Nessuna domanda selezionata', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Sei sicuro di voler resettare la classificazione per ${selectedQuestions.size} domande?`)) {
+        return;
+    }
+    
+    fetch('{{ url_for("questions.bulk_reset") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            question_names: Array.from(selectedQuestions)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Errore di rete', 'error');
+    });
+}
+
+// Suggerimenti AI
+function getBulkSuggestions() {
+    if (selectedQuestions.size === 0) {
+        showToast('Nessuna domanda selezionata', 'warning');
+        return;
+    }
+    
+    fetch('{{ url_for("questions.auto_suggest") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            question_names: Array.from(selectedQuestions)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuggestionsModal(data.suggestions);
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Errore di rete', 'error');
+    });
+}
+
+// Reset singola domanda
+function resetQuestion(columnName, fileId, rowIndex) {
+    if (!confirm('Sei sicuro di voler resettare la classificazione di questa domanda?')) {
+        return;
+    }
+    
+    fetch('{{ url_for("questions.bulk_reset") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            question_names: [columnName]
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            document.getElementById(`current-type-${fileId}-${rowIndex}`).innerHTML = '<span class="text-muted">Non classificata</span>';
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Errore di rete', 'error');
+    });
+}
+
+// Mostra dettagli domanda
+function showQuestionDetails(columnName, fileId, rowIndex) {
+    // Implementazione per mostrare dettagli in un modal
+    showToast(`Dettagli per: ${columnName} (File ID: ${fileId})`, 'info');
+}
+
+// Utility per aggiornare la visualizzazione del tipo (aggiornata per nuovo formato)
+function updateQuestionTypeDisplay(fileId, rowIndex, questionType) {
+    const typeMap = {
+        'aperta': '🔓 Aperta',
+        'anagrafica': '👤 Anagrafica',
+        'chiusa_binaria': '✅ Sì/No',
+        'chiusa_multipla': '☑️ Multipla',
+        'likert': '📊 Likert',
+        'numerica': '🔢 Numerica'
+    };
+    
+    const colorMap = {
+        'aperta': 'bg-success',
+        'anagrafica': 'bg-info',
+        'chiusa_binaria': 'bg-secondary',
+        'chiusa_multipla': 'bg-primary',
+        'likert': 'bg-warning',
+        'numerica': 'bg-dark'
+    };
+    
+    const display = typeMap[questionType] || questionType;
+    const color = colorMap[questionType] || 'bg-light text-dark';
+    
+    document.getElementById(`current-type-${fileId}-${rowIndex}`).innerHTML = 
+        `<span class="badge ${color}">${display}</span>`;
+}
+
+// Mostra modal dei suggerimenti
+function showSuggestionsModal(suggestions) {
+    let modalContent = `
+        <div class="modal fade" id="suggestionsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Suggerimenti AI per Classificazione</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Domanda</th>
+                                        <th>Tipo Suggerito</th>
+                                        <th>Confidenza</th>
+                                        <th>Azione</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+    
+    suggestions.forEach((suggestion, index) => {
+        const confidence = Math.round(suggestion.confidence * 100);
+        modalContent += `
+            <tr>
+                <td>${suggestion.question_name.substring(0, 50)}...</td>
+                <td><span class="badge bg-primary">${suggestion.suggested_type}</span></td>
+                <td>
+                    <div class="progress" style="width: 60px;">
+                        <div class="progress-bar" style="width: ${confidence}%">${confidence}%</div>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="applySuggestion('${suggestion.question_name}', '${suggestion.suggested_type}')">
+                        Applica
+                    </button>
+                </td>
+            </tr>`;
+    });
+    
+    modalContent += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" onclick="applyAllSuggestions()">
+                            Applica Tutti i Suggerimenti
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Chiudi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    // Rimuovi modal esistente se presente
+    const existingModal = document.getElementById('suggestionsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Aggiungi nuovo modal
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Mostra modal
+    new bootstrap.Modal(document.getElementById('suggestionsModal')).show();
+    
+    // Salva suggerimenti per uso successivo
+    window.currentSuggestions = suggestions;
+}
+
+function applySuggestion(questionName, suggestedType) {
+    fetch('{{ url_for("questions.classify_question") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            column_name: questionName,
+            question_type: suggestedType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`Applicato suggerimento per: ${questionName}`, 'success');
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function applyAllSuggestions() {
+    if (!window.currentSuggestions) return;
+    
+    const classifications = window.currentSuggestions.map(s => ({
+        column_name: s.question_name,
+        question_type: s.suggested_type
+    }));
+    
+    // Chiudi il modal
+    bootstrap.Modal.getInstance(document.getElementById('suggestionsModal')).hide();
+    
+    // Applica tutte le classificazioni
+    fetch('{{ url_for("questions.bulk_classify") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            question_names: classifications.map(c => c.column_name),
+            question_type: classifications[0].question_type // Per ora usiamo il primo tipo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Tutti i suggerimenti applicati!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+// Funzione per mostrare toast (mantenuta dal codice originale)
+function showToast(message, type) {
+    const toast = document.getElementById('notification-toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    toastMessage.textContent = message;
+    
+    toast.className = 'toast';
+    if (type === 'success') {
+        toast.classList.add('bg-success', 'text-white');
+    } else if (type === 'error') {
+        toast.classList.add('bg-danger', 'text-white');
+    } else if (type === 'warning') {
+        toast.classList.add('bg-warning', 'text-dark');
+    } else {
+        toast.classList.add('bg-info', 'text-white');
+    }
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+</script>
+{% endblock %}

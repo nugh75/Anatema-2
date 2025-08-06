@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+
+{% block title %}Nuova Voce - Diario di Bordo{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Quill Editor Styles */
+.ql-toolbar {
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 0.375rem 0.375rem 0 0;
+    background-color: #f8f9fa;
+}
+
+.ql-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 0.375rem 0.375rem;
+    font-family: inherit;
+}
+
+.ql-editor {
+    min-height: 200px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.ql-editor.ql-blank::before {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Mention styles */
+.mention-user {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.mention-file {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.mention-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1050;
+    display: none;
+}
+
+.mention-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.mention-item:hover,
+.mention-item.active {
+    background-color: #e9ecef;
+}
+
+.mention-item:last-child {
+    border-bottom: none;
+}
+
+.attachment-preview {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: cover;
+}
+
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover,
+.file-upload-area.dragover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.selected-files {
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-journal-plus me-2"></i>Nuova Voce del Diario</h1>
+                <a href="{{ url_for('diary.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Torna al Diario
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <form method="POST" enctype="multipart/form-data" id="diaryForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="card">
+                    <div class="card-body">
+                        <!-- Titolo -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Titolo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   placeholder="Inserisci un titolo per questa voce del diario">
+                        </div>
+
+                        <!-- Data/Ora dell'evento -->
+                        <div class="mb-3">
+                            <label for="entry_date" class="form-label">Data/Ora dell'Evento</label>
+                            <input type="datetime-local" class="form-control" id="entry_date" name="entry_date">
+                            <div class="form-text">Imposta la data e ora in cui è avvenuto l'evento descritto (lascia vuoto per ora corrente)</div>
+                        </div>
+
+                        <!-- Metadati -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="activity_type" class="form-label">Tipo Attività</label>
+                                <select class="form-select" id="activity_type" name="activity_type">
+                                    <option value="general">Generale</option>
+                                    <option value="meeting">Riunione</option>
+                                    <option value="milestone">Milestone</option>
+                                    <option value="issue">Problema</option>
+                                    <option value="reflection">Riflessione</option>
+                                    <option value="consideration">Considerazione</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="priority" class="form-label">Priorità</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low">Bassa</option>
+                                    <option value="medium" selected>Media</option>
+                                    <option value="high">Alta</option>
+                                    <option value="urgent">Urgente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="project_id" class="form-label">Progetto Correlato</label>
+                                <select class="form-select" id="project_id" name="project_id">
+                                    <option value="">Nessun progetto</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}">{{ project.original_filename }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tag -->
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tag</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   placeholder="Inserisci tag separati da virgola (es: importante, meeting, design)">
+                            <div class="form-text">Usa i tag per categorizzare e ritrovare facilmente le voci del diario.</div>
+                        </div>
+
+                        <!-- Editor contenuto -->
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Contenuto <span class="text-danger">*</span></label>
+                            
+                            <!-- Fallback: textarea normale -->
+                            <textarea class="form-control" id="content" name="content" rows="12" required 
+                                      placeholder="Descrivi l'attività, le decisioni prese, i problemi riscontrati...
+
+Esempi:
+- Usa @nomeutente per menzionare colleghi
+- Usa #nomefile per referenziare documenti
+- Utilizza markdown per formattare il testo"></textarea>
+                            
+                            <!-- Editor Quill (se disponibile) -->
+                            <div id="quillEditor" style="height: 300px; display: none;"></div>
+                            
+                            <div class="form-text mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Usa markdown per formattare il testo (es: **grassetto**, *corsivo*, ## Titolo).
+                                Per menzionare utenti usa @nomeutente, per file usa #nomefile.
+                            </div>
+                        </div>
+
+                        <!-- Allegati -->
+                        <div class="mb-3">
+                            <label class="form-label">Allegati</label>
+                            <div class="file-upload-area" onclick="document.getElementById('attachments').click()">
+                                <i class="bi bi-cloud-upload fs-1 text-muted mb-2"></i>
+                                <p class="mb-0">Clicca qui per selezionare file o trascinali qui</p>
+                                <small class="text-muted">Formati supportati: immagini, PDF, documenti Office, CSV</small>
+                            </div>
+                            <input type="file" class="form-control d-none" id="attachments" name="attachments" 
+                                   multiple accept=".png,.jpg,.jpeg,.gif,.pdf,.doc,.docx,.txt,.xlsx,.csv">
+                            
+                            <!-- Anteprima file selezionati -->
+                            <div id="selectedFiles" class="selected-files mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pulsanti azione -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('diary.index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i>Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Salva Voce
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar con suggerimenti -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Suggerimenti</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Menzioni e Riferimenti</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <span class="badge bg-info">@</span>
+                            <strong>Menziona utenti:</strong> @nomeutente
+                        </li>
+                        <li class="mb-2">
+                            <span class="badge bg-success">#</span>
+                            <strong>Riferisci file:</strong> #nomefile.py
+                        </li>
+                    </ul>
+
+                    <h6 class="mt-3">Formattazione</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-1"><code>**grassetto**</code></li>
+                        <li class="mb-1"><code>*corsivo*</code></li>
+                        <li class="mb-1"><code>- lista</code></li>
+                    </ul>
+
+                    <h6 class="mt-3">Tipi di Attività</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="bi bi-journal-text text-muted me-1"></i> <strong>Generale:</strong> Note generali</li>
+                        <li><i class="bi bi-people text-muted me-1"></i> <strong>Riunione:</strong> Verbali e decisioni</li>
+                        <li><i class="bi bi-flag text-muted me-1"></i> <strong>Milestone:</strong> Traguardi raggiunti</li>
+                        <li><i class="bi bi-exclamation-triangle text-muted me-1"></i> <strong>Problema:</strong> Issues e bug</li>
+                        <li><i class="bi bi-lightbulb text-muted me-1"></i> <strong>Riflessione:</strong> Analisi e pensieri</li>
+                        <li><i class="bi bi-chat-dots text-muted me-1"></i> <strong>Considerazione:</strong> Valutazioni e osservazioni</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Statistiche veloci -->
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <div id="wordCount" class="h5 text-primary mb-0">0</div>
+                    <small class="text-muted">Parole</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Quill JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+<script>
+// Inizializzazione Quill Editor (con fallback)
+let quill = null;
+let useQuill = false;
+
+// Prova a caricare Quill
+if (typeof Quill !== 'undefined') {
+    try {
+        quill = new Quill('#quillEditor', {
+            theme: 'snow',
+            placeholder: 'Descrivi l\'attività, le decisioni prese, i problemi riscontrati...\n\nEsempi:\n- Usa @nomeutente per menzionare colleghi\n- Usa #nomefile per referenziare documenti\n- Utilizza la barra degli strumenti per formattare il testo',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                    [{ 'align': [] }],
+                    ['blockquote', 'code-block'],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+        
+        // Se Quill si carica correttamente, nasconde la textarea e mostra l'editor
+        document.getElementById('quillEditor').style.display = 'block';
+        document.getElementById('content').style.display = 'none';
+        useQuill = true;
+        
+        console.log('Quill editor caricato con successo');
+    } catch (error) {
+        console.warn('Errore caricamento Quill:', error);
+        useQuill = false;
+    }
+} else {
+    console.log('Quill non disponibile, usando textarea normale');
+    useQuill = false;
+}
+
+// Contatore parole in tempo reale
+function updateWordCount() {
+    let text = '';
+    if (useQuill && quill) {
+        text = quill.getText().trim();
+    } else {
+        text = document.getElementById('content').value.trim();
+    }
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    document.getElementById('wordCount').textContent = words.length;
+}
+
+// Aggiorna contatore quando il contenuto cambia
+if (useQuill && quill) {
+    quill.on('text-change', function() {
+        updateWordCount();
+        // Aggiorna il campo nascosto con il contenuto HTML
+        document.getElementById('content').value = quill.root.innerHTML;
+    });
+} else {
+    // Usa textarea normale
+    document.getElementById('content').addEventListener('input', updateWordCount);
+}
+
+// Inizializza contatore
+updateWordCount();
+
+// Gestione menzioni con Quill
+let mentionModule = {
+    currentMentionType: null,
+    mentionStartIndex: 0,
+    mentionDropdown: null,
+    
+    init: function() {
+        this.mentionDropdown = this.createDropdown();
+        this.bindEvents();
+    },
+    
+    createDropdown: function() {
+        const dropdown = document.createElement('div');
+        dropdown.className = 'mention-dropdown';
+        dropdown.style.position = 'absolute';
+        dropdown.style.display = 'none';
+        document.querySelector('#quillEditor').appendChild(dropdown);
+        return dropdown;
+    },
+    
+    bindEvents: function() {
+        const self = this;
+        
+        quill.on('text-change', function(delta, oldDelta, source) {
+            if (source === 'user') {
+                self.handleTextChange();
+            }
+        });
+        
+        quill.on('selection-change', function(range, oldRange, source) {
+            if (!range) {
+                self.hideMentionDropdown();
+            }
+        });
+        
+        // Gestione tasti per navigazione dropdown
+        quill.keyboard.addBinding({
+            key: 'ArrowDown',
+            collapsed: true,
+            format: []
+        }, function(range, context) {
+            if (self.mentionDropdown.style.display === 'block') {
+                self.navigateDropdown('down');
+                return false;
+            }
+            return true;
+        });
+        
+        quill.keyboard.addBinding({
+            key: 'ArrowUp',
+            collapsed: true,
+            format: []
+        }, function(range, context) {
+            if (self.mentionDropdown.style.display === 'block') {
+                self.navigateDropdown('up');
+                return false;
+            }
+            return true;
+        });
+        
+        quill.keyboard.addBinding({
+            key: 'Enter',
+            collapsed: true,
+            format: []
+        }, function(range, context) {
+            if (self.mentionDropdown.style.display === 'block') {
+                self.selectActiveMention();
+                return false;
+            }
+            return true;
+        });
+        
+        quill.keyboard.addBinding({
+            key: 'Escape',
+            collapsed: true,
+            format: []
+        }, function(range, context) {
+            if (self.mentionDropdown.style.display === 'block') {
+                self.hideMentionDropdown();
+                return false;
+            }
+            return true;
+        });
+    },
+    
+    handleTextChange: function() {
+        const selection = quill.getSelection();
+        if (!selection) return;
+        
+        const text = quill.getText();
+        const cursorPos = selection.index;
+        
+        // Cerca l'ultimo @ o # prima del cursore
+        let mentionPos = -1;
+        let mentionChar = null;
+        
+        for (let i = cursorPos - 1; i >= 0; i--) {
+            if (text[i] === '@' || text[i] === '#') {
+                // Verifica che non ci siano spazi tra il simbolo e il cursore
+                const textBetween = text.substring(i + 1, cursorPos);
+                if (!textBetween.includes(' ') && !textBetween.includes('\n')) {
+                    mentionPos = i;
+                    mentionChar = text[i];
+                    break;
+                }
+            }
+            if (text[i] === ' ' || text[i] === '\n') {
+                break;
+            }
+        }
+        
+        if (mentionPos !== -1 && mentionChar) {
+            const query = text.substring(mentionPos + 1, cursorPos);
+            this.currentMentionType = mentionChar;
+            this.mentionStartIndex = mentionPos;
+            
+            if (query.length >= 1) {
+                this.showMentionDropdown(query, mentionChar);
+            } else {
+                this.hideMentionDropdown();
+            }
+        } else {
+            this.hideMentionDropdown();
+        }
+    },
+    
+    async showMentionDropdown(query, type) {
+        let items = [];
+        
+        if (type === '@') {
+            try {
+                const response = await fetch(`{{ url_for('diary.api_users') }}?q=${encodeURIComponent(query)}`);
+                const users = await response.json();
+                items = users.map(user => ({
+                    display: user.display_name,
+                    value: user.username,
+                    icon: 'bi-person'
+                }));
+            } catch (error) {
+                console.error('Errore caricamento utenti:', error);
+            }
+        } else if (type === '#') {
+            try {
+                const response = await fetch(`{{ url_for('diary.api_files') }}?q=${encodeURIComponent(query)}`);
+                const files = await response.json();
+                items = files.map(file => ({
+                    display: file.name,
+                    value: file.name,
+                    icon: 'bi-file-earmark'
+                }));
+            } catch (error) {
+                console.error('Errore caricamento file:', error);
+            }
+        }
+        
+        if (items.length > 0) {
+            this.renderMentionDropdown(items);
+            this.positionDropdown();
+            this.mentionDropdown.style.display = 'block';
+        } else {
+            this.hideMentionDropdown();
+        }
+    },
+    
+    renderMentionDropdown(items) {
+        const self = this;
+        this.mentionDropdown.innerHTML = items.map((item, index) => `
+            <div class="mention-item ${index === 0 ? 'active' : ''}" data-value="${item.value}">
+                <i class="${item.icon} me-2"></i>${item.display}
+            </div>
+        `).join('');
+        
+        // Aggiungi event listeners
+        this.mentionDropdown.querySelectorAll('.mention-item').forEach(item => {
+            item.addEventListener('click', () => {
+                self.selectMention(item.dataset.value);
+            });
+        });
+    },
+    
+    positionDropdown() {
+        const bounds = quill.getBounds(this.mentionStartIndex);
+        const editorBounds = quill.container.getBoundingClientRect();
+        
+        this.mentionDropdown.style.position = 'absolute';
+        this.mentionDropdown.style.top = (bounds.bottom + 5) + 'px';
+        this.mentionDropdown.style.left = bounds.left + 'px';
+        this.mentionDropdown.style.maxWidth = '300px';
+    },
+    
+    hideMentionDropdown() {
+        this.mentionDropdown.style.display = 'none';
+        this.currentMentionType = null;
+    },
+    
+    navigateDropdown(direction) {
+        const items = this.mentionDropdown.querySelectorAll('.mention-item');
+        const activeItem = this.mentionDropdown.querySelector('.mention-item.active');
+        let activeIndex = Array.from(items).indexOf(activeItem);
+        
+        if (direction === 'down') {
+            activeIndex = (activeIndex + 1) % items.length;
+        } else {
+            activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+        }
+        
+        items.forEach((item, index) => {
+            item.classList.toggle('active', index === activeIndex);
+        });
+    },
+    
+    selectActiveMention() {
+        const activeItem = this.mentionDropdown.querySelector('.mention-item.active');
+        if (activeItem) {
+            this.selectMention(activeItem.dataset.value);
+        }
+    },
+    
+    selectMention(value) {
+        const selection = quill.getSelection();
+        const currentLength = selection.index - this.mentionStartIndex;
+        
+        // Cancella il testo della menzione corrente
+        quill.deleteText(this.mentionStartIndex, currentLength);
+        
+        // Inserisci la menzione formattata
+        const mentionText = this.currentMentionType + value + ' ';
+        const mentionClass = this.currentMentionType === '@' ? 'mention-user' : 'mention-file';
+        
+        quill.insertText(this.mentionStartIndex, mentionText, {
+            'background': this.currentMentionType === '@' ? '#e3f2fd' : '#f3e5f5',
+            'color': this.currentMentionType === '@' ? '#1976d2' : '#7b1fa2'
+        });
+        
+        // Posiziona il cursore dopo la menzione
+        quill.setSelection(this.mentionStartIndex + mentionText.length);
+        
+        this.hideMentionDropdown();
+        updateWordCount();
+    }
+};
+
+// Inizializza il modulo menzioni solo se Quill è disponibile
+if (useQuill && quill) {
+    mentionModule.init();
+}
+
+// Funzioni per gestione file upload
+const fileInput = document.getElementById('attachments');
+const selectedFilesDiv = document.getElementById('selectedFiles');
+const uploadArea = document.querySelector('.file-upload-area');
+
+fileInput.addEventListener('change', handleFileSelect);
+
+// Drag & Drop
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    fileInput.files = files;
+    handleFileSelect();
+});
+
+function handleFileSelect() {
+    const files = Array.from(fileInput.files);
+    
+    selectedFilesDiv.innerHTML = files.map(file => `
+        <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-file-earmark me-2"></i>
+                <div>
+                    <div class="fw-medium">${file.name}</div>
+                    <small class="text-muted">${formatFileSize(file.size)}</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile('${file.name}')">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function removeFile(fileName) {
+    const dt = new DataTransfer();
+    const files = Array.from(fileInput.files);
+    
+    files.forEach(file => {
+        if (file.name !== fileName) {
+            dt.items.add(file);
+        }
+    });
+    
+    fileInput.files = dt.files;
+    handleFileSelect();
+}
+
+// Validazione form
+document.getElementById('diaryForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('title').value.trim();
+    let content = '';
+    
+    if (useQuill && quill) {
+        content = quill.getText().trim();
+        // Aggiorna il campo nascosto con il contenuto finale
+        document.getElementById('content').value = quill.root.innerHTML;
+    } else {
+        content = document.getElementById('content').value.trim();
+    }
+    
+    if (!title || !content) {
+        e.preventDefault();
+        alert('Titolo e contenuto sono obbligatori');
+        return false;
+    }
+    
+    // Mostra loading
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Salvataggio...';
+    submitBtn.disabled = true;
+});
+
+// Imposta la data/ora corrente come default
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const currentDateTime = now.toISOString().slice(0, 16);
+    document.getElementById('entry_date').value = currentDateTime;
+});
+</script>
+{% endblock %}

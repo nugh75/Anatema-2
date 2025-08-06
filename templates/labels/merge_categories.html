@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Merge Categorie -Anatema{% endblock %}
+
+{% block extra_head %}
+<style>
+    .category-group {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+    }
+    .category-card {
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .category-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .category-card.selected {
+        border-color: #007bff;
+        background-color: #e3f2fd;
+    }
+    .merge-preview {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_labels') }}">Etichette</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_categories') }}">Categorie</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Merge Categorie</li>
+            </ol>
+        </nav>
+        
+        <h2>
+            <i class="bi bi-arrow-down-up me-2"></i>Merge Categorie
+        </h2>
+        <p class="text-muted">
+            Unisci categorie duplicate o simili per mantenere organizzate le tue etichette
+        </p>
+    </div>
+</div>
+
+<!-- Gruppi suggeriti -->
+{% if potential_merges %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>Merge Suggeriti
+                </h5>
+                <small class="text-muted">Categorie che potrebbero essere duplicate</small>
+            </div>
+            <div class="card-body">
+                {% for keyword, group in potential_merges.items() %}
+                <div class="category-group">
+                    <h6 class="text-primary mb-3">
+                        <i class="bi bi-collection me-2"></i>
+                        Parola chiave: "{{ keyword }}"
+                    </h6>
+                    <div class="row">
+                        {% for category in group %}
+                        <div class="col-md-4 mb-2">
+                            <div class="card category-card" data-category-id="{{ category.id }}">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge me-2" style="background-color: {{ category.color }}; color: white;">
+                                            &nbsp;
+                                        </span>
+                                        <div>
+                                            <strong>{{ category.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ category.labels|length }} etichette
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-primary quick-merge-btn"
+                                data-group="{{ keyword }}">
+                            <i class="bi bi-lightning me-1"></i>
+                            Merge Rapido
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Merge manuale -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-tools me-2"></i>Merge Manuale
+                </h5>
+                <small class="text-muted">Seleziona manualmente le categorie da unire</small>
+            </div>
+            <div class="card-body">
+                <form id="mergeForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Seleziona Categorie da Unire:</h6>
+                            <div class="row">
+                                {% for category in categories %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card category-card h-100" data-category-id="{{ category.id }}">
+                                        <div class="card-body p-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input source-category" 
+                                                       type="checkbox" 
+                                                       name="source_categories" 
+                                                       value="{{ category.id }}"
+                                                       id="category{{ category.id }}">
+                                                <label class="form-check-label w-100" for="category{{ category.id }}">
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="badge me-2" style="background-color: {{ category.color }}; color: white;">
+                                                            &nbsp;
+                                                        </span>
+                                                        <div>
+                                                            <strong>{{ category.name }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                {{ category.labels|length }} etichette
+                                                            </small>
+                                                            {% if category.description %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                {{ category.description[:50] }}{% if category.description|length > 50 %}...{% endif %}
+                                                            </small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="sticky-top" style="top: 20px;">
+                                <h6>Categoria di Destinazione:</h6>
+                                <div class="mb-3">
+                                    <select class="form-select" name="target_category" id="targetCategory" required>
+                                        <option value="">Seleziona categoria di destinazione...</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}" data-color="{{ category.color }}">
+                                            {{ category.name }} ({{ category.labels|length }} etichette)
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div id="mergePreview" class="merge-preview" style="display: none;">
+                                    <h6>
+                                        <i class="bi bi-eye me-2"></i>Anteprima Merge
+                                    </h6>
+                                    <div id="previewContent"></div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-3">
+                                    <button type="submit" class="btn btn-warning" id="mergeBtn" disabled>
+                                        <i class="bi bi-arrow-down-up me-2"></i>
+                                        Esegui Merge
+                                    </button>
+                                    <a href="{{ url_for('labels.list_categories') }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle me-2"></i>
+                                        Annulla
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Conferma Merge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Attenzione!</strong> Questa operazione è irreversibile.
+                </div>
+                <p>Stai per unire le seguenti categorie:</p>
+                <ul id="categoriesToMerge"></ul>
+                <p>Tutte le etichette verranno spostate nella categoria di destinazione e le categorie sorgente verranno eliminate.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning" id="confirmMerge">
+                    <i class="bi bi-check-circle me-2"></i>Conferma Merge
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mergeForm');
+    const sourceCheckboxes = document.querySelectorAll('.source-category');
+    const targetSelect = document.getElementById('targetCategory');
+    const mergeBtn = document.getElementById('mergeBtn');
+    const mergePreview = document.getElementById('mergePreview');
+    const previewContent = document.getElementById('previewContent');
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    
+    // Aggiorna lo stato del pulsante e l'anteprima
+    function updateMergeState() {
+        const selectedSources = Array.from(sourceCheckboxes).filter(cb => cb.checked);
+        const targetSelected = targetSelect.value;
+        
+        // Abilita il pulsante solo se ci sono sorgenti e target selezionati
+        const canMerge = selectedSources.length > 0 && targetSelected && 
+                        !selectedSources.some(cb => cb.value === targetSelected);
+        
+        mergeBtn.disabled = !canMerge;
+        
+        // Mostra/nascondi anteprima
+        if (canMerge) {
+            showPreview(selectedSources, targetSelected);
+        } else {
+            mergePreview.style.display = 'none';
+        }
+    }
+    
+    // Mostra anteprima del merge
+    function showPreview(sources, targetId) {
+        const targetOption = targetSelect.querySelector(`option[value="${targetId}"]`);
+        const targetName = targetOption.textContent;
+        
+        let totalLabels = 0;
+        let sourceNames = [];
+        
+        sources.forEach(cb => {
+            const categoryCard = cb.closest('.category-card');
+            const categoryName = categoryCard.querySelector('strong').textContent;
+            const labelCount = parseInt(categoryCard.querySelector('small').textContent.match(/\d+/)[0]);
+            
+            sourceNames.push(categoryName);
+            totalLabels += labelCount;
+        });
+        
+        previewContent.innerHTML = `
+            <p><strong>Categorie da unire:</strong></p>
+            <ul>${sourceNames.map(name => `<li>${name}</li>`).join('')}</ul>
+            <p><strong>Categoria di destinazione:</strong> ${targetName}</p>
+            <p><strong>Totale etichette da spostare:</strong> ${totalLabels}</p>
+        `;
+        
+        mergePreview.style.display = 'block';
+    }
+    
+    // Event listeners
+    sourceCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            // Deseleziona il target se è tra le sorgenti selezionate
+            if (this.checked && this.value === targetSelect.value) {
+                targetSelect.value = '';
+            }
+            updateMergeState();
+        });
+    });
+    
+    targetSelect.addEventListener('change', function() {
+        // Deseleziona dalle sorgenti se è il target
+        sourceCheckboxes.forEach(cb => {
+            if (cb.value === this.value) {
+                cb.checked = false;
+            }
+        });
+        updateMergeState();
+    });
+    
+    // Gestione submit del form
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const selectedSources = Array.from(sourceCheckboxes).filter(cb => cb.checked);
+        const targetName = targetSelect.querySelector(`option[value="${targetSelect.value}"]`).textContent;
+        
+        // Popola il modal di conferma
+        const categoriesList = document.getElementById('categoriesToMerge');
+        categoriesList.innerHTML = selectedSources.map(cb => {
+            const categoryName = cb.closest('.category-card').querySelector('strong').textContent;
+            return `<li>${categoryName}</li>`;
+        }).join('');
+        
+        confirmModal.show();
+    });
+    
+    // Conferma merge
+    document.getElementById('confirmMerge').addEventListener('click', function() {
+        form.submit();
+    });
+    
+    // Quick merge buttons
+    document.querySelectorAll('.quick-merge-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const group = this.dataset.group;
+            const groupCards = this.closest('.category-group').querySelectorAll('.category-card');
+            
+            // Seleziona tutte le categorie del gruppo come sorgenti tranne la prima
+            let first = true;
+            groupCards.forEach(card => {
+                const categoryId = card.dataset.categoryId;
+                const checkbox = document.querySelector(`input[value="${categoryId}"]`);
+                
+                if (first) {
+                    // La prima diventa il target
+                    targetSelect.value = categoryId;
+                    checkbox.checked = false;
+                    first = false;
+                } else {
+                    // Le altre diventano sorgenti
+                    checkbox.checked = true;
+                }
+            });
+            
+            updateMergeState();
+            
+            // Scroll to merge section
+            document.getElementById('mergeForm').scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    
+    // Highlight delle card selezionate
+    sourceCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const card = this.closest('.category-card');
+            if (this.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

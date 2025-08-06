@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-speedometer2 me-2"></i>Dashboard di {{ current_user.username }}
+        </h2>
+        <p class="text-muted">Panoramica delle tue attività di etichettatura</p>
+    </div>
+</div>
+
+<!-- Statistiche personali -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-primary text-white stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-pencil-square stat-icon mb-3"></i>
+                <h3 class="card-title">{{ user_stats.my_annotations }}</h3>
+                <p class="card-text">Le Tue Annotazioni</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-success text-white stat-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-excel stat-icon mb-3"></i>
+                <h3 class="card-title">{{ user_stats.my_files }}</h3>
+                <p class="card-text">File Caricati da Te</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Azioni rapide -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('excel.upload') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-cloud-upload d-block mb-2" style="font-size: 2rem;"></i>
+                            Carica File Excel
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('annotation.browse_annotations') }}" class="btn btn-success btn-lg w-100 mb-3">
+                            <i class="bi bi-search d-block mb-2" style="font-size: 2rem;"></i>
+                            Naviga e Annota Celle
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('labels.create_label') }}" class="btn btn-info btn-lg w-100 mb-3">
+                            <i class="bi bi-plus-circle d-block mb-2" style="font-size: 2rem;"></i>
+                            Crea Etichetta
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('statistics.overview') }}" class="btn btn-warning btn-lg w-100 mb-3">
+                            <i class="bi bi-graph-up d-block mb-2" style="font-size: 2rem;"></i>
+                            Vedi Statistiche
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attività recenti -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Le Tue Annotazioni Recenti
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_annotations %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Cella</th>
+                                <th>Contenuto</th>
+                                <th>Etichetta</th>
+                                <th>Data</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for annotation, cell, label in recent_annotations %}
+                            <tr>
+                                <td>
+                                    <small class="text-muted">{{ cell.excel_file.original_filename }}</small>
+                                </td>
+                                <td>
+                                    <code>{{ cell.sheet_name }}:{{ cell.cell_reference }}</code>
+                                </td>
+                                <td>
+                                    <div class="text-truncate-2" style="max-width: 200px;" title="{{ cell.text_content }}">
+                                        {{ cell.text_content }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="label-display" style="background-color: {{ label.color }};">
+                                        {{ label.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ annotation.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('annotation.annotate_cell', cell_id=cell.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil me-1"></i>Modifica
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-info-circle display-4 text-muted mb-3"></i>
+                    <h6 class="text-muted">Non hai ancora creato annotazioni</h6>
+                    <p class="text-muted">Inizia caricando un file Excel e annotando le celle testuali</p>
+                    <a href="{{ url_for('excel.upload') }}" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload me-2"></i>Carica il Primo File
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

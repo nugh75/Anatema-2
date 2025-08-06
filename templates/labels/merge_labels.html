@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Merge Etichette{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-code-branch"></i>
+                    Merge Etichette
+                </h2>
+                <a href="{{ url_for('labels.list_labels') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Torna alla Lista
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Unisci Etichette
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb"></i>
+                        <strong>Come funziona il merge:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Seleziona una o più etichette di <strong>origine</strong> (che verranno eliminate)</li>
+                            <li>Seleziona un'etichetta di <strong>destinazione</strong> (che rimarrà)</li>
+                            <li>Tutte le annotazioni delle etichette di origine verranno trasferite a quella di destinazione</li>
+                            <li>Le etichette di origine verranno eliminate definitivamente</li>
+                        </ul>
+                    </div>
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="row">
+                            <!-- Etichette di Origine -->
+                            <div class="col-md-6">
+                                <h5 class="text-danger">
+                                    <i class="fas fa-minus-circle"></i>
+                                    Etichette di Origine (da eliminare)
+                                </h5>
+                                <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                                    {% for category, labels in labels_by_category.items() %}
+                                        <div class="mb-3">
+                                            <h6 class="text-muted border-bottom pb-1">{{ category }}</h6>
+                                            {% for label in labels %}
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input source-label" 
+                                                           type="checkbox" 
+                                                           name="source_labels" 
+                                                           value="{{ label.id }}" 
+                                                           id="source_{{ label.id }}">
+                                                    <label class="form-check-label d-flex justify-content-between align-items-center" 
+                                                           for="source_{{ label.id }}">
+                                                        <span>
+                                                            <span class="badge me-2" 
+                                                                  style="background-color: {{ label.color }}; color: white;">
+                                                                {{ label.name }}
+                                                            </span>
+                                                            <small class="text-muted">{{ label.description }}</small>
+                                                        </span>
+                                                        <span class="badge bg-secondary">
+                                                            {{ label.annotation_count }} annotazioni
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Etichetta di Destinazione -->
+                            <div class="col-md-6">
+                                <h5 class="text-success">
+                                    <i class="fas fa-plus-circle"></i>
+                                    Etichetta di Destinazione (che rimarrà)
+                                </h5>
+                                <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                                    {% for category, labels in labels_by_category.items() %}
+                                        <div class="mb-3">
+                                            <h6 class="text-muted border-bottom pb-1">{{ category }}</h6>
+                                            {% for label in labels %}
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input target-label" 
+                                                           type="radio" 
+                                                           name="target_label" 
+                                                           value="{{ label.id }}" 
+                                                           id="target_{{ label.id }}">
+                                                    <label class="form-check-label d-flex justify-content-between align-items-center" 
+                                                           for="target_{{ label.id }}">
+                                                        <span>
+                                                            <span class="badge me-2" 
+                                                                  style="background-color: {{ label.color }}; color: white;">
+                                                                {{ label.name }}
+                                                            </span>
+                                                            <small class="text-muted">{{ label.description }}</small>
+                                                        </span>
+                                                        <span class="badge bg-secondary">
+                                                            {{ label.annotation_count }} annotazioni
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-warning" id="preview-section" style="display: none;">
+                                    <h6><i class="fas fa-eye"></i> Anteprima Merge:</h6>
+                                    <div id="preview-content"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-danger btn-lg" id="merge-btn" disabled>
+                                <i class="fas fa-code-branch"></i>
+                                Esegui Merge
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sourceLabels = document.querySelectorAll('.source-label');
+    const targetLabels = document.querySelectorAll('.target-label');
+    const mergeBtn = document.getElementById('merge-btn');
+    const previewSection = document.getElementById('preview-section');
+    const previewContent = document.getElementById('preview-content');
+
+    function updatePreview() {
+        const selectedSources = Array.from(sourceLabels).filter(cb => cb.checked);
+        const selectedTarget = Array.from(targetLabels).find(rb => rb.checked);
+
+        if (selectedSources.length > 0 && selectedTarget) {
+            // Abilita il pulsante
+            mergeBtn.disabled = false;
+
+            // Mostra l'anteprima
+            previewSection.style.display = 'block';
+            
+            const sourceNames = selectedSources.map(cb => {
+                const label = cb.closest('.form-check').querySelector('label');
+                const name = label.querySelector('.badge').textContent.trim();
+                const count = label.querySelector('.badge.bg-secondary').textContent.trim();
+                return `<strong>${name}</strong> (${count})`;
+            });
+
+            const targetLabel = selectedTarget.closest('.form-check').querySelector('label');
+            const targetName = targetLabel.querySelector('.badge').textContent.trim();
+            const targetCount = targetLabel.querySelector('.badge.bg-secondary').textContent.trim();
+
+            previewContent.innerHTML = `
+                <p><strong>Azioni che verranno eseguite:</strong></p>
+                <ul>
+                    <li>Le etichette ${sourceNames.join(', ')} verranno <strong class="text-danger">eliminate</strong></li>
+                    <li>Tutte le loro annotazioni verranno trasferite a <strong class="text-success">${targetName}</strong> (${targetCount})</li>
+                </ul>
+                <p class="mb-0"><strong class="text-warning">Attenzione:</strong> Questa operazione non può essere annullata!</p>
+            `;
+        } else {
+            mergeBtn.disabled = true;
+            previewSection.style.display = 'none';
+        }
+    }
+
+    // Aggiungi listener per i cambi di selezione
+    sourceLabels.forEach(cb => cb.addEventListener('change', updatePreview));
+    targetLabels.forEach(rb => rb.addEventListener('change', updatePreview));
+
+    // Impedisci di selezionare la stessa etichetta come origine e destinazione
+    sourceLabels.forEach(sourceCb => {
+        sourceCb.addEventListener('change', function() {
+            if (this.checked) {
+                const correspondingTarget = document.getElementById(`target_${this.value}`);
+                if (correspondingTarget && correspondingTarget.checked) {
+                    correspondingTarget.checked = false;
+                    updatePreview();
+                }
+            }
+        });
+    });
+
+    targetLabels.forEach(targetRb => {
+        targetRb.addEventListener('change', function() {
+            if (this.checked) {
+                const correspondingSource = document.getElementById(`source_${this.value}`);
+                if (correspondingSource && correspondingSource.checked) {
+                    correspondingSource.checked = false;
+                    updatePreview();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

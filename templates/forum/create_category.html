@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Nuova Categoria - Forum - Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-plus-circle me-2"></i>Nuova Categoria Forum
+                    </h2>
+                    <p class="text-muted mb-0">Crea una nuova categoria per {{ excel_file.original_filename }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('forum.file_forum', file_id=excel_file.id) }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Annulla
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-collection me-2"></i>Dettagli Categoria
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="bi bi-tag me-1"></i>Nome Categoria *
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           placeholder="Es: Discussioni sui Risultati" required maxlength="100">
+                                    <div class="form-text">Scegli un nome descrittivo per la categoria</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="color" class="form-label">
+                                        <i class="bi bi-palette me-1"></i>Colore
+                                    </label>
+                                    <select class="form-select" id="color" name="color">
+                                        <option value="primary" selected>Blu (Primary)</option>
+                                        <option value="success">Verde (Success)</option>
+                                        <option value="info">Azzurro (Info)</option>
+                                        <option value="warning">Giallo (Warning)</option>
+                                        <option value="danger">Rosso (Danger)</option>
+                                        <option value="secondary">Grigio (Secondary)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="bi bi-text-paragraph me-1"></i>Descrizione
+                            </label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" maxlength="500"
+                                      placeholder="Descrivi lo scopo e i temi di discussione di questa categoria..."></textarea>
+                            <div class="form-text">Aiuta gli altri annotatori a capire quando usare questa categoria</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="icon" class="form-label">
+                                <i class="bi bi-emoji-smile me-1"></i>Icona
+                            </label>
+                            <select class="form-select" id="icon" name="icon">
+                                <option value="bi-chat-dots" selected>💬 Chat generale</option>
+                                <option value="bi-lightbulb">💡 Idee e suggerimenti</option>
+                                <option value="bi-question-circle">❓ Domande e dubbi</option>
+                                <option value="bi-exclamation-triangle">⚠️ Problemi e segnalazioni</option>
+                                <option value="bi-bar-chart">📊 Analisi e statistiche</option>
+                                <option value="bi-gear">⚙️ Aspetti tecnici</option>
+                                <option value="bi-people">👥 Collaborazione</option>
+                                <option value="bi-star">⭐ Risultati interessanti</option>
+                                <option value="bi-flag">🚩 Da rivedere</option>
+                                <option value="bi-heart">❤️ Feedback positivi</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('forum.file_forum', file_id=excel_file.id) }}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Annulla
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Crea Categoria
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar con suggerimenti -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Suggerimenti
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>💡 Idee per Categorie</h6>
+                    <ul class="small">
+                        <li><strong>Analisi Dati:</strong> Per discutere pattern e risultati</li>
+                        <li><strong>Difficoltà Etichettatura:</strong> Per casi complessi</li>
+                        <li><strong>Miglioramenti:</strong> Per suggerimenti di processo</li>
+                        <li><strong>Risultati Interessanti:</strong> Per condividere scoperte</li>
+                        <li><strong>Domande Tecniche:</strong> Per supporto tecnico</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">🎨 Consigli Colori</h6>
+                    <ul class="small">
+                        <li><span class="badge bg-primary">Blu</span> - Discussioni generali</li>
+                        <li><span class="badge bg-success">Verde</span> - Successi e risultati</li>
+                        <li><span class="badge bg-warning">Giallo</span> - Attenzione o review</li>
+                        <li><span class="badge bg-danger">Rosso</span> - Problemi urgenti</li>
+                        <li><span class="badge bg-info">Azzurro</span> - Informazioni</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Anteprima colore in tempo reale
+document.getElementById('color').addEventListener('change', function() {
+    const color = this.value;
+    const colorDisplay = document.querySelector('#color + .form-text');
+    if (colorDisplay) {
+        colorDisplay.innerHTML = `<span class="badge bg-${color}">Anteprima colore</span>`;
+    }
+});
+</script>
+{% endblock %}

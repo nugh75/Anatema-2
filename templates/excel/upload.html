@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Carica File Excel -Anatema{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-cloud-upload me-2"></i>Carica File Excel
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-info-circle me-2"></i>Informazioni sui File Supportati
+                    </h6>
+                    <ul class="mb-0">
+                        <li>Formati supportati: <strong>.xlsx</strong>, <strong>.xls</strong></li>
+                        <li>Dimensione massima: <strong>16 MB</strong></li>
+                        <li>L'applicazione estrarrà automaticamente tutte le celle contenenti testo</li>
+                        <li>Saranno inclusi tutti i fogli del file Excel</li>
+                    </ul>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-4">
+                        {{ form.file.label(class="form-label") }}
+                        {{ form.file(class="form-control" + (" is-invalid" if form.file.errors else ""), accept=".xlsx,.xls") }}
+                        {% if form.file.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.file.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cloud-upload me-2"></i>Carica e Elabora File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview dell'elaborazione -->
+        <div class="mt-4">
+            <h5>
+                <i class="bi bi-gear me-2"></i>Cosa Succede Durante l'Elaborazione
+            </h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="bi bi-file-earmark-text display-4 text-primary mb-3"></i>
+                            <h6 class="card-title">1. Lettura File</h6>
+                            <p class="card-text small">
+                                Il file Excel viene caricato e analizzato
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="bi bi-search display-4 text-success mb-3"></i>
+                            <h6 class="card-title">2. Estrazione Testi</h6>
+                            <p class="card-text small">
+                                Vengono identificate tutte le celle con contenuto testuale
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="bi bi-database display-4 text-info mb-3"></i>
+                            <h6 class="card-title">3. Salvataggio</h6>
+                            <p class="card-text small">
+                                I dati vengono salvati nel database per l'etichettatura
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% block title %}Gestione Colori Categorie{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .color-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .color-card:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    .color-preview {
+        width: 100%;
+        height: 60px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .slider-container {
+        margin: 10px 0;
+    }
+    
+    .slider-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .color-slider {
+        width: 100%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        border-radius: 4px;
+        outline: none;
+        margin: 5px 0;
+    }
+    
+    .color-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #007bff;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .color-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #007bff;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .hue-slider {
+        background: linear-gradient(to right, 
+            hsl(0, 100%, 50%), 
+            hsl(60, 100%, 50%), 
+            hsl(120, 100%, 50%), 
+            hsl(180, 100%, 50%), 
+            hsl(240, 100%, 50%), 
+            hsl(300, 100%, 50%), 
+            hsl(360, 100%, 50%)
+        );
+    }
+    
+    .saturation-slider {
+        background: linear-gradient(to right, hsl(0, 0%, 50%), hsl(0, 100%, 50%));
+    }
+    
+    .lightness-slider {
+        background: linear-gradient(to right, hsl(0, 0%, 0%), hsl(0, 0%, 50%), hsl(0, 0%, 100%));
+    }
+    
+    .category-stats {
+        font-size: 12px;
+        color: #666;
+        margin-top: 10px;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        text-align: center;
+    }
+    
+    .reset-btn {
+        background: linear-gradient(45deg, #6c757d, #5a6268);
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .reset-btn:hover {
+        background: linear-gradient(45deg, #5a6268, #495057);
+        transform: scale(1.05);
+    }
+    
+    .save-all-btn {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 20px 0;
+    }
+    
+    .save-all-btn:hover {
+        background: linear-gradient(45deg, #20c997, #17a2b8);
+        transform: scale(1.05);
+        box-shadow: 0 4px 16px rgba(40, 167, 69, 0.3);
+    }
+    
+    .header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .stat-item {
+        background: rgba(255,255,255,0.1);
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .value-display {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        color: #666;
+        margin-top: 5px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="header-section">
+        <h1><i class="fas fa-palette"></i> Gestione Colori Categorie</h1>
+        <p class="mb-0">Personalizza i colori delle categorie per una migliore organizzazione visiva</p>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <strong>{{ categories|length }}</strong><br>
+                <small>Categorie Totali</small>
+            </div>
+            <div class="stat-item">
+                <strong>{{ category_stats.values()|map(attribute='label_count')|sum }}</strong><br>
+                <small>Etichette Totali</small>
+            </div>
+            <div class="stat-item">
+                <strong>{{ category_stats.values()|map(attribute='annotation_count')|sum }}</strong><br>
+                <small>Annotazioni Totali</small>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('labels.update_category_colors') }}" id="colorForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="row">
+            {% for category in categories %}
+            <div class="col-md-6 col-lg-4">
+                <div class="color-card">
+                    <div class="color-preview" 
+                         id="preview_{{ category.id }}"
+                         style="background-color: {{ category.get_effective_color() }}; 
+                                color: {{ category.get_text_color() }};">
+                        {{ category.name }}
+                    </div>
+                    
+                    <h6 class="mb-3">
+                        {{ category.name }}
+                        {% if category.description %}
+                        <small class="text-muted d-block">{{ category.description[:50] }}{% if category.description|length > 50 %}...{% endif %}</small>
+                        {% endif %}
+                    </h6>
+                    
+                    <!-- Slider HSL -->
+                    <div class="slider-container">
+                        <div class="slider-label">Tonalità (H)</div>
+                        <input type="range" 
+                               class="color-slider hue-slider" 
+                               min="0" max="360" 
+                               value="{{ category.get_hsl()[0] }}"
+                               data-category="{{ category.id }}"
+                               data-type="hue"
+                               id="hue_{{ category.id }}">
+                        <div class="value-display">{{ "%.0f"|format(category.get_hsl()[0]) }}°</div>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">Saturazione (S)</div>
+                        <input type="range" 
+                               class="color-slider saturation-slider" 
+                               min="0" max="100" 
+                               value="{{ (category.get_hsl()[1] * 100)|round }}"
+                               data-category="{{ category.id }}"
+                               data-type="saturation"
+                               id="saturation_{{ category.id }}">
+                        <div class="value-display">{{ "%.0f"|format(category.get_hsl()[1] * 100) }}%</div>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">Luminosità (L)</div>
+                        <input type="range" 
+                               class="color-slider lightness-slider" 
+                               min="10" max="90" 
+                               value="{{ (category.get_hsl()[2] * 100)|round }}"
+                               data-category="{{ category.id }}"
+                               data-type="lightness"
+                               id="lightness_{{ category.id }}">
+                        <div class="value-display">{{ "%.0f"|format(category.get_hsl()[2] * 100) }}%</div>
+                    </div>
+                    
+                    <!-- Campo nascosto per il colore -->
+                    <input type="hidden" 
+                           name="color_{{ category.id }}" 
+                           id="color_{{ category.id }}" 
+                           value="{{ category.get_effective_color() }}">
+                    
+                    <!-- Statistiche e reset -->
+                    <div class="category-stats">
+                        {{ category_stats[category.id].label_count }} etichette • 
+                        {{ category_stats[category.id].annotation_count }} annotazioni
+                        <div class="mt-2">
+                            <button type="button" 
+                                    class="reset-btn"
+                                    onclick="resetCategoryColor({{ category.id }})">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="save-all-btn">
+                <i class="fas fa-save"></i> Salva Tutti i Colori
+            </button>
+            <a href="{{ url_for('labels.list_categories') }}" class="btn btn-secondary ml-3">
+                <i class="fas fa-arrow-left"></i> Torna alle Categorie
+            </a>
+        </div>
+    </form>
+    
+    <!-- Sezione Sincronizzazione -->
+    <div class="text-center mt-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-sync-alt"></i> Sincronizzazione Etichette
+                </h5>
+                <p class="card-text text-muted">
+                    Applica i colori delle categorie alle etichette.
+                </p>
+                
+                <div class="row">
+                    <!-- Sincronizzazione Standard -->
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-sync"></i> Sincronizzazione Standard
+                                </h6>
+                                <p class="card-text small">
+                                    Applica i colori delle categorie solo alle etichette che non hanno un colore personalizzato.
+                                </p>
+                                <button type="button" class="btn btn-warning" onclick="syncLabelColors(false)">
+                                    <i class="fas fa-sync-alt"></i> Sincronizza
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sincronizzazione Forzata -->
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-sync-alt"></i> Sincronizzazione Forzata
+                                </h6>
+                                <p class="card-text small">
+                                    Applica i colori delle categorie a <strong>tutte</strong> le etichette, sovrascrivendo i colori personalizzati.
+                                </p>
+                                <button type="button" class="btn btn-danger" onclick="syncLabelColors(true)">
+                                    <i class="fas fa-exclamation-triangle"></i> Forza Sincronizzazione
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per risultati sincronizzazione -->
+<div class="modal fade" id="syncResultModal" tabindex="-1" aria-labelledby="syncResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="syncResultModalLabel">
+                    <i class="fas fa-sync-alt"></i> Risultati Sincronizzazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="syncResultContent">
+                    <!-- Contenuto dinamico -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-secondary" onclick="location.reload()">
+                    <i class="fas fa-redo"></i> Ricarica Pagina
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Conversione HSL to HEX
+function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+// Calcola colore testo contrastante
+function getContrastingTextColor(hexColor) {
+    const r = parseInt(hexColor.substr(1, 2), 16);
+    const g = parseInt(hexColor.substr(3, 2), 16);
+    const b = parseInt(hexColor.substr(5, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
+// Aggiorna anteprima colore
+function updateColorPreview(categoryId) {
+    const hue = document.getElementById(`hue_${categoryId}`).value;
+    const saturation = document.getElementById(`saturation_${categoryId}`).value;
+    const lightness = document.getElementById(`lightness_${categoryId}`).value;
+    
+    const hexColor = hslToHex(hue, saturation, lightness);
+    const textColor = getContrastingTextColor(hexColor);
+    
+    const preview = document.getElementById(`preview_${categoryId}`);
+    preview.style.backgroundColor = hexColor;
+    preview.style.color = textColor;
+    
+    // Aggiorna campo nascosto
+    document.getElementById(`color_${categoryId}`).value = hexColor;
+    
+    // Aggiorna display valori
+    document.querySelector(`#hue_${categoryId} + .value-display`).textContent = `${hue}°`;
+    document.querySelector(`#saturation_${categoryId} + .value-display`).textContent = `${saturation}%`;
+    document.querySelector(`#lightness_${categoryId} + .value-display`).textContent = `${lightness}%`;
+}
+
+// Reset colore categoria
+function resetCategoryColor(categoryId) {
+    if (confirm('Vuoi ripristinare il colore predefinito per questa categoria?')) {
+        fetch(`{{ url_for('labels.reset_category_color', category_id=0) }}`.replace('0', categoryId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Errore durante il reset del colore');
+            }
+        });
+    }
+}
+
+// Event listeners per slider
+document.addEventListener('DOMContentLoaded', function() {
+    const sliders = document.querySelectorAll('.color-slider');
+    
+    sliders.forEach(slider => {
+        slider.addEventListener('input', function() {
+            const categoryId = this.dataset.category;
+            updateColorPreview(categoryId);
+            
+            // Aggiorna background slider saturation e lightness in base a hue
+            if (this.dataset.type === 'hue') {
+                const hue = this.value;
+                const satSlider = document.getElementById(`saturation_${categoryId}`);
+                const lightSlider = document.getElementById(`lightness_${categoryId}`);
+                
+                satSlider.style.background = `linear-gradient(to right, hsl(${hue}, 0%, 50%), hsl(${hue}, 100%, 50%))`;
+                lightSlider.style.background = `linear-gradient(to right, hsl(${hue}, 70%, 0%), hsl(${hue}, 70%, 50%), hsl(${hue}, 70%, 100%))`;
+            }
+        });
+    });
+    
+    // Inizializza colori slider
+    {% for category in categories %}
+    updateColorPreview({{ category.id }});
+    {% endfor %}
+});
+
+// Funzione per sincronizzare i colori delle etichette
+async function syncLabelColors(forceSync = false) {
+    const syncType = forceSync ? 'forzata' : 'standard';
+    const confirmMessage = forceSync ? 
+        'ATTENZIONE: Questa operazione sovrascriverà TUTTI i colori personalizzati delle etichette. Continuare?' :
+        'Sincronizzare i colori delle etichette che non hanno colori personalizzati?';
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Mostra indicatore di caricamento
+    const loadingHtml = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Sincronizzazione in corso...</span>
+            </div>
+            <p class="mt-2">Sincronizzazione ${syncType} in corso...</p>
+        </div>
+    `;
+    
+    document.getElementById('syncResultContent').innerHTML = loadingHtml;
+    const modal = new bootstrap.Modal(document.getElementById('syncResultModal'));
+    modal.show();
+    
+    try {
+        // Ottieni il token CSRF
+        const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
+                         document.querySelector('input[name="csrf_token"]')?.value;
+        
+        const response = await fetch('{{ url_for("labels.api_sync_label_colors") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                force_sync: forceSync
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSyncSuccess(result);
+        } else {
+            showSyncError(result.error);
+        }
+        
+    } catch (error) {
+        console.error('Errore durante la sincronizzazione:', error);
+        showSyncError('Errore di connessione durante la sincronizzazione.');
+    }
+}
+
+function showSyncSuccess(result) {
+    const { updated_count, total_count, sync_type, updated_labels, skipped_labels } = result;
+    
+    let html = `
+        <div class="alert alert-success">
+            <h6><i class="fas fa-check-circle"></i> Sincronizzazione ${sync_type} completata!</h6>
+            <p>Aggiornate <strong>${updated_count}</strong> etichette su <strong>${total_count}</strong> totali.</p>
+        </div>
+    `;
+    
+    if (updated_labels.length > 0) {
+        html += `
+            <h6><i class="fas fa-sync-alt"></i> Etichette aggiornate (${updated_labels.length}):</h6>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Etichetta</th>
+                            <th>Categoria</th>
+                            <th>Colore Precedente</th>
+                            <th>Nuovo Colore</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        updated_labels.forEach(label => {
+            html += `
+                <tr>
+                    <td><strong>${label.name}</strong></td>
+                    <td><span class="badge bg-secondary">${label.category}</span></td>
+                    <td>
+                        <span class="badge" style="background-color: ${label.old_color}; width: 20px; height: 20px; border-radius: 50%;">&nbsp;</span>
+                        <code>${label.old_color}</code>
+                    </td>
+                    <td>
+                        <span class="badge" style="background-color: ${label.new_color}; width: 20px; height: 20px; border-radius: 50%;">&nbsp;</span>
+                        <code>${label.new_color}</code>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    if (skipped_labels.length > 0) {
+        html += `
+            <h6 class="mt-3"><i class="fas fa-info-circle"></i> Etichette non modificate (${skipped_labels.length}):</h6>
+            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Etichetta</th>
+                            <th>Categoria</th>
+                            <th>Colore Personalizzato</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        skipped_labels.forEach(label => {
+            html += `
+                <tr>
+                    <td><strong>${label.name}</strong></td>
+                    <td><span class="badge bg-secondary">${label.category}</span></td>
+                    <td>
+                        <span class="badge" style="background-color: ${label.color}; width: 20px; height: 20px; border-radius: 50%;">&nbsp;</span>
+                        <code>${label.color}</code>
+                    </td>
+                    <td><small class="text-muted">Ha colore personalizzato</small></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    document.getElementById('syncResultContent').innerHTML = html;
+}
+
+function showSyncError(error) {
+    const html = `
+        <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle"></i> Errore durante la sincronizzazione</h6>
+            <p>${error}</p>
+        </div>
+    `;
+    
+    document.getElementById('syncResultContent').innerHTML = html;
+}
+</script>
+{% endblock %}

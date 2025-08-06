@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Confronto Quesito - {{ question }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-people me-2"></i>Confronto Annotatori: {{ question }}</h2>
+                <div>
+                    <a href="{{ url_for('statistics.question_detail', file_id=file.id, question=question) }}" 
+                       class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna al Quesito
+                    </a>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.overview') }}">Statistiche</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.file_detail', file_id=file.id) }}">{{ file.filename }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('statistics.question_detail', file_id=file.id, question=question) }}">{{ question }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Confronto</li>
+                </ol>
+            </nav>
+
+            <!-- Selettore Annotatori -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-users me-2"></i>Seleziona Annotatori da Confrontare
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="user1_id" class="form-label">Primo Annotatore</label>
+                            <select class="form-select" name="user1_id" id="user1_id" required>
+                                <option value="">Seleziona...</option>
+                                {% for annotator in annotators %}
+                                <option value="{{ annotator.id }}" {% if user1 and annotator.id == user1.id %}selected{% endif %}>
+                                    {{ annotator.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="user2_id" class="form-label">Secondo Annotatore</label>
+                            <select class="form-select" name="user2_id" id="user2_id" required>
+                                <option value="">Seleziona...</option>
+                                {% for annotator in annotators %}
+                                <option value="{{ annotator.id }}" {% if user2 and annotator.id == user2.id %}selected{% endif %}>
+                                    {{ annotator.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-people"></i> Confronta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if user1 and user2 and comparison %}
+            <!-- Risultati del Confronto -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person me-2"></i>{{ user1.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">{{ comparison.user1_total }}</h3>
+                            <p class="mb-0">Celle Annotate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person me-2"></i>{{ user2.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h3 class="text-success">{{ comparison.user2_total }}</h3>
+                            <p class="mb-0">Celle Annotate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accordo Inter-Annotatore -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-handshake me-2"></i>Accordo Inter-Annotatore
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center mb-3">
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-primary">{{ comparison.common_cells }}</h3>
+                                        <p class="mb-0">Celle in Comune</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-success">{{ comparison.agreements }}</h3>
+                                        <p class="mb-0">Accordi</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-warning">{{ comparison.conflicts|length }}</h3>
+                                        <p class="mb-0">Conflitti</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-3 bg-light rounded">
+                                        <h3 class="text-info">{{ "%.1f"|format(comparison.agreement_percentage) }}%</h3>
+                                        <p class="mb-0">% Accordo</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if comparison.agreement_percentage >= 80 %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle me-2"></i>Accordo molto elevato (≥ 80%)
+                            </div>
+                            {% elif comparison.agreement_percentage >= 60 %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>Accordo buono (60-79%)
+                            </div>
+                            {% elif comparison.agreement_percentage >= 40 %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Accordo moderato (40-59%)
+                            </div>
+                            {% else %}
+                            <div class="alert alert-danger">
+                                <i class="bi bi-x-circle me-2"></i>Accordo basso (< 40%)
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabella Conflitti -->
+            {% if comparison.conflicts %}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-exclamation-triangle text-warning me-2"></i>Dettagli Conflitti
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Cella</th>
+                                            <th>{{ user1.username }}</th>
+                                            <th>{{ user2.username }}</th>
+                                            <th>Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for conflict in comparison.conflicts %}
+                                        <tr>
+                                            <td><code>{{ conflict.cell_id }}</code></td>
+                                            <td>
+                                                {% for ann in conflict.user1_annotations %}
+                                                <div class="mb-1">
+                                                    <span class="badge me-1" style="background-color: {{ ann.label_color }}">
+                                                        {{ ann.label_name }}
+                                                    </span>
+                                                    {% if ann.is_ai_generated %}
+                                                    <br><small class="text-info">🤖 AI Generated</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                {% for ann in conflict.user2_annotations %}
+                                                <div class="mb-1">
+                                                    <span class="badge me-1" style="background-color: {{ ann.label_color }}">
+                                                        {{ ann.label_name }}
+                                                    </span>
+                                                    {% if ann.is_ai_generated %}
+                                                    <br><small class="text-info">🤖 AI Generated</small>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('annotation.annotate_cell', cell_id=conflict.cell_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="bi bi-pencil"></i> Rivedi
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Annotazioni Complete -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person me-2"></i>Annotazioni {{ user1.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Cella</th>
+                                            <th>Etichetta</th>
+                                            <th>Tipo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for ann in comparison.user1_annotations %}
+                                        <tr>
+                                            <td><code>{{ ann.text_cell_id }}</code></td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ ann.label_color }}">
+                                                    {{ ann.label_name }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if ann.is_ai_generated %}
+                                                <small class="text-info">🤖 AI</small>
+                                                {% else %}
+                                                <small class="text-primary">👤 Human</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person me-2"></i>Annotazioni {{ user2.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Cella</th>
+                                            <th>Etichetta</th>
+                                            <th>Tipo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for ann in comparison.user2_annotations %}
+                                        <tr>
+                                            <td><code>{{ ann.text_cell_id }}</code></td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ ann.label_color }}">
+                                                    {{ ann.label_name }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if ann.is_ai_generated %}
+                                                <small class="text-info">🤖 AI</small>
+                                                {% else %}
+                                                <small class="text-primary">👤 Human</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

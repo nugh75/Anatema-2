@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Sistema{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="fas fa-download"></i> Gestione Backup</h2>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.users_count }}</h5>
+                            <p class="card-text">Utenti</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.labels_count }}</h5>
+                            <p class="card-text">Etichette</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.files_count }}</h5>
+                            <p class="card-text">File Excel</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ stats.annotations_count }}</h5>
+                            <p class="card-text">Annotazioni</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-archive"></i> Crea Backup</h5>
+                </div>
+                <div class="card-body">
+                    <p>Il backup includerà:</p>
+                    <ul>
+                        <li>Database completo (utenti, etichette, annotazioni)</li>
+                        <li>File Excel caricati</li>
+                        <li>Metadati di sistema</li>
+                    </ul>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nota:</strong> Il backup verrà scaricato come file ZIP. 
+                        Conserva il backup in un luogo sicuro per poter ripristinare i dati in caso di necessità.
+                    </div>
+                    
+                    <button onclick="createBackup()" class="btn btn-primary btn-lg">
+                        <i class="fas fa-download"></i> Crea e Scarica Backup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function createBackup() {
+    if (confirm('Sei sicuro di voler creare un backup? L\'operazione potrebbe richiedere alcuni minuti.')) {
+        // Mostra indicatore di caricamento
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando backup...';
+        button.disabled = true;
+        
+        // Reindirizza per scaricare il backup
+        window.location.href = '{{ url_for("admin.create_backup") }}';
+        
+        // Ripristina il pulsante dopo un po'
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }, 5000);
+    }
+}
+</script>
+{% endblock %}

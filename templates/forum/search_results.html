@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Ricerca: "{{ query }}" - Forum - Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-search me-2"></i>Risultati Ricerca
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Risultati per "<strong>{{ query }}</strong>" in {{ excel_file.original_filename }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('forum.file_forum', file_id=excel_file.id) }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna al Forum
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra di ricerca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('forum.search', file_id=excel_file.id) }}">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="q" 
+                                   placeholder="Cerca post, commenti o discussioni..." 
+                                   value="{{ query }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-1"></i>Cerca
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Risultati post -->
+        <div class="col-lg-8">
+            {% if posts %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-text me-2"></i>Post Trovati
+                        <span class="badge bg-primary ms-2">{{ posts|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for post in posts %}
+                    <div class="search-result mb-4{% if not loop.last %} border-bottom pb-4{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('forum.view_post', post_id=post.id) }}" 
+                                   class="text-decoration-none">
+                                    {{ post.title }}
+                                </a>
+                                {% if post.is_pinned %}
+                                <i class="bi bi-pin-angle-fill text-warning ms-1"></i>
+                                {% endif %}
+                                {% if post.is_locked %}
+                                <i class="bi bi-lock-fill text-danger ms-1"></i>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                        <p class="text-muted mb-2">
+                            {{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>{{ post.author.username }}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-collection me-1"></i>
+                                <a href="{{ url_for('forum.category', category_id=post.category_id) }}" 
+                                   class="text-decoration-none">{{ post.category.name }}</a>
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-chat-left me-1"></i>{{ post.comment_count }} commenti
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-eye me-1"></i>{{ post.views }} visualizzazioni
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Risultati commenti -->
+            {% if comments %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-left me-2"></i>Commenti Trovati
+                        <span class="badge bg-success ms-2">{{ comments|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for comment in comments %}
+                    <div class="search-result mb-4{% if not loop.last %} border-bottom pb-4{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('forum.view_post', post_id=comment.post_id) }}#comment-{{ comment.id }}" 
+                                   class="text-decoration-none">
+                                    Commento in: {{ comment.post.title }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">{{ comment.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </div>
+                        <p class="text-muted mb-2">
+                            {{ comment.content[:200] }}{% if comment.content|length > 200 %}...{% endif %}
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <small class="text-muted">
+                                <i class="bi bi-person me-1"></i>{{ comment.author.username }}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-collection me-1"></i>
+                                <a href="{{ url_for('forum.category', category_id=comment.post.category_id) }}" 
+                                   class="text-decoration-none">{{ comment.post.category.name }}</a>
+                            </small>
+                            {% if comment.parent %}
+                            <small class="text-muted">
+                                <i class="bi bi-reply me-1"></i>Risposta
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Nessun risultato -->
+            {% if not posts and not comments %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-search display-4 text-muted mb-3"></i>
+                    <h5 class="text-muted">Nessun Risultato Trovato</h5>
+                    <p class="text-muted mb-4">
+                        Non è stato trovato nulla per "<strong>{{ query }}</strong>"
+                    </p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{{ url_for('forum.file_forum', file_id=excel_file.id) }}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-chat-dots me-1"></i>Torna al Forum
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" 
+                                onclick="document.querySelector('input[name=q]').focus()">
+                            <i class="bi bi-search me-1"></i>Nuova Ricerca
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Suggerimenti ricerca -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>Suggerimenti Ricerca
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small">
+                        <li>Usa parole chiave specifiche</li>
+                        <li>Cerca termini tecnici o nomi di domande</li>
+                        <li>Prova sinonimi se non trovi risultati</li>
+                        <li>Cerca username degli annotatori</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">🔍 Esempi di Ricerca:</h6>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-light text-dark">etichetta</span>
+                        <span class="badge bg-light text-dark">annotazione</span>
+                        <span class="badge bg-light text-dark">problema</span>
+                        <span class="badge bg-light text-dark">aiuto</span>
+                        <span class="badge bg-light text-dark">dubbio</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche ricerca -->
+            {% if posts or comments %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>Risultati Ricerca
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="text-primary">{{ posts|length }}</h5>
+                            <small class="text-muted">Post</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success">{{ comments|length }}</h5>
+                            <small class="text-muted">Commenti</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Link rapidi -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-link me-2"></i>Link Rapidi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('forum.file_forum', file_id=excel_file.id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-chat-dots me-1"></i>Forum del File
+                        </a>
+                        <a href="{{ url_for('excel.view_file', file_id=excel_file.id) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Vedi File Excel
+                        </a>
+                        <a href="{{ url_for('forum.index') }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-house me-1"></i>Tutti i Forum
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.search-result {
+    transition: background-color 0.2s;
+}
+
+.search-result:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    margin: -0.5rem;
+}
+
+mark {
+    background-color: rgba(var(--bs-warning-rgb), 0.3);
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
+}
+</style>
+{% endblock %}

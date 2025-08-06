@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica: {{ entry.title }} - Diario di Bordo{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Quill Editor Styles */
+.ql-toolbar {
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 0.375rem 0.375rem 0 0;
+    background-color: #f8f9fa;
+}
+
+.ql-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 0.375rem 0.375rem;
+    font-family: inherit;
+}
+
+.ql-editor {
+    min-height: 200px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.ql-editor.ql-blank::before {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.mention-user {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.mention-file {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.mention-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1050;
+    display: none;
+}
+
+.mention-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.mention-item:hover,
+.mention-item.active {
+    background-color: #e9ecef;
+}
+
+.mention-item:last-child {
+    border-bottom: none;
+}
+
+.changes-summary {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+</style>
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('diary.index') }}">Diario di Bordo</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('diary.view', id=entry.id) }}">{{ entry.title }}</a>
+                            </li>
+                            <li class="breadcrumb-item active">Modifica</li>
+                        </ol>
+                    </nav>
+                    <h1><i class="bi bi-pencil me-2"></i>Modifica Voce del Diario</h1>
+                </div>
+                <a href="{{ url_for('diary.view', id=entry.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Annulla
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avviso modifiche -->
+    <div class="row">
+        <div class="col-12">
+            <div class="changes-summary">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle fs-4 text-warning me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Stai modificando una voce esistente</h6>
+                        <p class="mb-0 small">
+                            Creata il {{ entry.created_at.strftime('%d/%m/%Y alle %H:%M') }}
+                            {% if entry.updated_at != entry.created_at %}
+                                • Ultima modifica: {{ entry.updated_at.strftime('%d/%m/%Y alle %H:%M') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <form method="POST" id="diaryEditForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="card">
+                    <div class="card-body">
+                        <!-- Titolo -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Titolo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   value="{{ entry.title }}" placeholder="Inserisci un titolo per questa voce del diario">
+                        </div>
+
+                        <!-- Data/Ora dell'evento -->
+                        <div class="mb-3">
+                            <label for="entry_date" class="form-label">Data/Ora dell'Evento</label>
+                            <input type="datetime-local" class="form-control" id="entry_date" name="entry_date" 
+                                   value="{{ entry.entry_date.strftime('%Y-%m-%dT%H:%M') if entry.entry_date else '' }}">
+                            <div class="form-text">Modifica la data e ora in cui è avvenuto l'evento descritto</div>
+                        </div>
+
+                        <!-- Metadati -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="activity_type" class="form-label">Tipo Attività</label>
+                                <select class="form-select" id="activity_type" name="activity_type">
+                                    <option value="general" {% if entry.activity_type == 'general' %}selected{% endif %}>Generale</option>
+                                    <option value="meeting" {% if entry.activity_type == 'meeting' %}selected{% endif %}>Riunione</option>
+                                    <option value="milestone" {% if entry.activity_type == 'milestone' %}selected{% endif %}>Milestone</option>
+                                    <option value="issue" {% if entry.activity_type == 'issue' %}selected{% endif %}>Problema</option>
+                                    <option value="decision" {% if entry.activity_type == 'decision' %}selected{% endif %}>Decisione</option>
+                                    <option value="reflection" {% if entry.activity_type == 'reflection' %}selected{% endif %}>Riflessione</option>
+                                    <option value="consideration" {% if entry.activity_type == 'consideration' %}selected{% endif %}>Considerazione</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="priority" class="form-label">Priorità</label>
+                                <select class="form-select" id="priority" name="priority">
+                                    <option value="low" {% if entry.priority == 'low' %}selected{% endif %}>Bassa</option>
+                                    <option value="medium" {% if entry.priority == 'medium' %}selected{% endif %}>Media</option>
+                                    <option value="high" {% if entry.priority == 'high' %}selected{% endif %}>Alta</option>
+                                    <option value="urgent" {% if entry.priority == 'urgent' %}selected{% endif %}>Urgente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="active" {% if entry.status == 'active' %}selected{% endif %}>Attivo</option>
+                                    <option value="completed" {% if entry.status == 'completed' %}selected{% endif %}>Completato</option>
+                                    <option value="archived" {% if entry.status == 'archived' %}selected{% endif %}>Archiviato</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="project_id" class="form-label">Progetto Correlato</label>
+                                <select class="form-select" id="project_id" name="project_id">
+                                    <option value="">Nessun progetto</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}" {% if entry.project_id == project.id %}selected{% endif %}>
+                                            {{ project.original_filename }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tag -->
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tag</label>
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   value="{{ entry.tags_list|join(', ') if entry.tags_list else '' }}"
+                                   placeholder="Inserisci tag separati da virgola (es: importante, meeting, design)">
+                            <div class="form-text">Usa i tag per categorizzare e ritrovare facilmente le voci del diario.</div>
+                        </div>
+
+                        <!-- Editor contenuto -->
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Contenuto <span class="text-danger">*</span></label>
+                            
+                            <!-- Fallback: textarea normale -->
+                            <textarea class="form-control" id="content" name="content" rows="12" required 
+                                      placeholder="Descrivi l'attività, le decisioni prese, i problemi riscontrati...">{{ entry.content }}</textarea>
+                            
+                            <!-- Editor Quill (se disponibile) -->
+                            <div id="quillEditor" style="height: 300px; display: none;"></div>
+                            
+                            <div class="form-text mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Usa markdown per formattare il testo (es: **grassetto**, *corsivo*, ## Titolo).
+                                Per menzionare utenti usa @nomeutente, per file usa #nomefile.
+                            </div>
+                        </div>
+
+                        <!-- Allegati esistenti -->
+                        {% if entry.attachments %}
+                            <div class="mb-3">
+                                <label class="form-label">Allegati Esistenti</label>
+                                <div class="border rounded p-3">
+                                    {% for attachment in entry.attachments %}
+                                        <div class="d-flex align-items-center justify-content-between p-2 border rounded mb-2 bg-light">
+                                            <div class="d-flex align-items-center">
+                                                {% if attachment.mime_type and attachment.mime_type.startswith('image/') %}
+                                                    <i class="bi bi-image text-success me-2"></i>
+                                                {% elif attachment.original_name.lower().endswith('.pdf') %}
+                                                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                                {% elif attachment.original_name.lower().endswith(('.doc', '.docx')) %}
+                                                    <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                                                {% else %}
+                                                    <i class="bi bi-file-earmark text-secondary me-2"></i>
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-medium">{{ attachment.original_name }}</div>
+                                                    <small class="text-muted">{{ attachment.file_size_human }}</small>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{{ url_for('static', filename='uploads/diary/' + attachment.filename) }}" 
+                                                   target="_blank" class="btn btn-sm btn-outline-primary me-1">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <small class="text-muted">Allegato</small>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Gli allegati esistenti non possono essere modificati dalla pagina di modifica. 
+                                        Per gestire gli allegati, contatta l'amministratore.
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Pulsanti azione -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('diary.view', id=entry.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i>Annulla
+                    </a>
+                    <div>
+                        <button type="button" class="btn btn-outline-info me-2" onclick="previewChanges()">
+                            <i class="bi bi-eye me-1"></i>Anteprima
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Salva Modifiche
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar con informazioni -->
+        <div class="col-lg-4">
+            <!-- Statistiche modifica -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Statistiche</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <div id="wordCount" class="h4 text-primary mb-0">{{ entry.word_count }}</div>
+                            <small class="text-muted">Parole</small>
+                        </div>
+                        <div class="col-6">
+                            <div id="charCount" class="h4 text-secondary mb-0">0</div>
+                            <small class="text-muted">Caratteri</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informazioni originali -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Cronologia</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="d-flex mb-2">
+                            <i class="bi bi-plus-circle text-success me-2 mt-1"></i>
+                            <div>
+                                <strong>Creazione</strong><br>
+                                <small class="text-muted">
+                                    {{ entry.created_at.strftime('%d/%m/%Y alle %H:%M') }} 
+                                    da {{ entry.author.username }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if entry.updated_at != entry.created_at %}
+                            <div class="d-flex">
+                                <i class="bi bi-pencil text-warning me-2 mt-1"></i>
+                                <div>
+                                    <strong>Ultima modifica</strong><br>
+                                    <small class="text-muted">
+                                        {{ entry.updated_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggerimenti -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Suggerimenti</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <i class="bi bi-check text-success me-1"></i>
+                            Usa <code>@nomeutente</code> per menzionare colleghi
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check text-success me-1"></i>
+                            Usa <code>#nomefile</code> per referenziare documenti
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check text-success me-1"></i>
+                            Aggiorna lo status se l'attività è completata
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check text-success me-1"></i>
+                            Modifica la priorità se necessario
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal anteprima -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">
+                    <i class="bi bi-eye me-2"></i>Anteprima Modifiche
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previewContent">
+                    <!-- Contenuto anteprima -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('diaryEditForm').submit()">
+                    <i class="bi bi-save me-1"></i>Salva Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Inizializzazione Quill Editor (con fallback)
+    let quill = null;
+    let useQuill = false;
+
+    // Prova a caricare Quill
+    if (typeof Quill !== 'undefined') {
+        try {
+            quill = new Quill('#quillEditor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link'],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Descrivi l\'attività, le decisioni prese, i problemi riscontrati... Usa @ per menzionare utenti e # per referenziare file'
+            });
+            
+            // Inizializza con il contenuto esistente
+            quill.root.innerHTML = `{{ entry.content|safe }}`;
+            
+            // Se Quill si carica correttamente, nasconde la textarea e mostra l'editor
+            document.getElementById('quillEditor').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+            useQuill = true;
+            
+            console.log('Quill editor caricato con successo');
+        } catch (error) {
+            console.warn('Errore caricamento Quill:', error);
+            useQuill = false;
+        }
+    } else {
+        console.log('Quill non disponibile, usando textarea normale');
+        useQuill = false;
+    }
+    
+    // Sistema di menzioni personalizzato
+    let mentionIndex = -1;
+    let mentionType = null;
+    let mentionQuery = '';
+    let mentionRange = null;
+    let mentionSuggestions = [];
+    
+    // Gestione eventi per le menzioni
+    quill.on('text-change', function(delta, oldDelta, source) {
+        if (source === 'user') {
+            const selection = quill.getSelection();
+            if (selection) {
+                const text = quill.getText(0, selection.index);
+                const lastChar = text[selection.index - 1];
+                
+                if (lastChar === '@' || lastChar === '#') {
+                    mentionType = lastChar;
+                    mentionIndex = selection.index - 1;
+                    mentionQuery = '';
+                    showMentionSuggestions();
+                } else if (mentionType && mentionIndex >= 0) {
+                    const currentText = text.substring(mentionIndex);
+                    const spaceIndex = currentText.indexOf(' ');
+                    
+                    if (spaceIndex > 0) {
+                        mentionQuery = currentText.substring(1, spaceIndex);
+                        updateMentionSuggestions();
+                    } else if (selection.index > mentionIndex) {
+                        mentionQuery = currentText.substring(1);
+                        updateMentionSuggestions();
+                    } else {
+                        hideMentionSuggestions();
+                    }
+                }
+            }
+        }
+        updateCounters();
+    });
+    
+    // Mostra suggerimenti per le menzioni
+    function showMentionSuggestions() {
+        if (mentionType === '@') {
+            fetchUserSuggestions();
+        } else if (mentionType === '#') {
+            fetchFileSuggestions();
+        }
+    }
+    
+    // Aggiorna suggerimenti basati sulla query
+    function updateMentionSuggestions() {
+        if (mentionQuery.length === 0) {
+            showMentionSuggestions();
+        } else {
+            const filtered = mentionSuggestions.filter(item => 
+                item.toLowerCase().includes(mentionQuery.toLowerCase())
+            );
+            displaySuggestions(filtered);
+        }
+    }
+    
+    // Nasconde suggerimenti
+    function hideMentionSuggestions() {
+        mentionType = null;
+        mentionIndex = -1;
+        mentionQuery = '';
+        const dropdown = document.getElementById('mentionDropdown');
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+    
+    // Fetch utenti
+    function fetchUserSuggestions() {
+        fetch('/diary/api/users')
+            .then(response => response.json())
+            .then(users => {
+                mentionSuggestions = users;
+                displaySuggestions(users);
+            })
+            .catch(error => console.error('Errore caricamento utenti:', error));
+    }
+    
+    // Fetch file
+    function fetchFileSuggestions() {
+        fetch('/diary/api/files')
+            .then(response => response.json())
+            .then(files => {
+                mentionSuggestions = files;
+                displaySuggestions(files);
+            })
+            .catch(error => console.error('Errore caricamento file:', error));
+    }
+    
+    // Mostra dropdown suggerimenti
+    function displaySuggestions(suggestions) {
+        let dropdown = document.getElementById('mentionDropdown');
+        if (!dropdown) {
+            dropdown = document.createElement('div');
+            dropdown.id = 'mentionDropdown';
+            dropdown.className = 'mention-dropdown';
+            document.body.appendChild(dropdown);
+        }
+        
+        if (suggestions.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        // Posiziona il dropdown
+        const bounds = quill.getBounds(mentionIndex);
+        const editorRect = quill.container.getBoundingClientRect();
+        
+        dropdown.style.position = 'absolute';
+        dropdown.style.left = (editorRect.left + bounds.left) + 'px';
+        dropdown.style.top = (editorRect.top + bounds.bottom + window.scrollY) + 'px';
+        dropdown.style.display = 'block';
+        dropdown.style.zIndex = '1000';
+        
+        // Crea elementi suggerimenti
+        dropdown.innerHTML = suggestions.slice(0, 5).map((suggestion, index) => 
+            `<div class="mention-item ${index === 0 ? 'selected' : ''}" data-value="${suggestion}">
+                ${mentionType}${suggestion}
+            </div>`
+        ).join('');
+        
+        // Eventi click
+        dropdown.querySelectorAll('.mention-item').forEach(item => {
+            item.addEventListener('click', () => selectMention(item.dataset.value));
+        });
+    }
+    
+    // Seleziona menzione
+    function selectMention(value) {
+        const selection = quill.getSelection();
+        const deleteLength = mentionQuery.length + 1; // +1 per @ o #
+        
+        quill.deleteText(mentionIndex, deleteLength);
+        
+        // Inserisci il testo formattato
+        quill.insertText(mentionIndex, mentionType + value, {
+            'background': mentionType === '@' ? '#e3f2fd' : '#f3e5f5',
+            'color': mentionType === '@' ? '#1976d2' : '#7b1fa2'
+        });
+        
+        quill.insertText(mentionIndex + value.length + 1, ' ');
+        quill.setSelection(mentionIndex + value.length + 2);
+        
+        hideMentionSuggestions();
+    }
+    
+    // Gestione tasti
+    quill.keyboard.addBinding({
+        key: 'Escape'
+    }, function() {
+        hideMentionSuggestions();
+        return true;
+    });
+    
+    quill.keyboard.addBinding({
+        key: 'Enter'
+    }, function() {
+        const dropdown = document.getElementById('mentionDropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+            const selected = dropdown.querySelector('.mention-item.selected');
+            if (selected) {
+                selectMention(selected.dataset.value);
+                return false;
+            }
+        }
+        return true;
+    });
+    
+    // Contatori in tempo reale
+    function updateCounters() {
+        let text = '';
+        if (useQuill && quill) {
+            text = quill.getText();
+        } else {
+            text = document.getElementById('content').value;
+        }
+        const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+        document.getElementById('wordCount').textContent = words.length;
+        document.getElementById('charCount').textContent = text.length;
+    }
+    
+    // Event listeners per aggiornamento contatori
+    if (useQuill && quill) {
+        quill.on('text-change', updateCounters);
+    } else {
+        document.getElementById('content').addEventListener('input', updateCounters);
+    }
+    
+    // Inizializza contatori
+    updateCounters();
+    
+    // Aggiorna il campo nascosto prima del submit
+    document.getElementById('diaryEditForm').addEventListener('submit', function() {
+        if (useQuill && quill) {
+            document.getElementById('content').value = quill.root.innerHTML;
+        }
+        hasUnsavedChanges = false;
+    });
+    
+    // Anteprima modifiche
+    function previewChanges() {
+        const title = document.getElementById('title').value;
+        const content = quill.root.innerHTML;
+        const activityType = document.getElementById('activity_type').value;
+        const priority = document.getElementById('priority').value;
+        const status = document.getElementById('status').value;
+        const tags = document.getElementById('tags').value;
+        
+        const previewContent = document.getElementById('previewContent');
+        
+        // Processa il contenuto per mostrare menzioni e riferimenti
+        const processedContent = content
+            .replace(/@(\w+)/g, '<span class="badge bg-primary">@$1</span>')
+            .replace(/#(\S+)/g, '<span class="badge bg-success">#$1</span>');
+        
+        previewContent.innerHTML = `
+            <div class="border-bottom pb-3 mb-3">
+                <h4>${title}</h4>
+                <div class="mb-2">
+                    <span class="badge bg-secondary me-1">${activityType}</span>
+                    <span class="badge bg-${priority === 'low' ? 'success' : priority === 'medium' ? 'warning' : 'danger'} me-1">${priority}</span>
+                    <span class="badge bg-${status === 'completed' ? 'success' : 'warning'}">${status}</span>
+                </div>
+                ${tags ? `<div class="mb-2">${tags.split(',').map(tag => `<span class="badge bg-light text-dark me-1">${tag.trim()}</span>`).join('')}</div>` : ''}
+            </div>
+            <div class="content">
+                ${processedContent}
+            </div>
+        `;
+        
+        // Mostra il modal
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        modal.show();
+    }
+    
+    // Validazione form
+    document.getElementById('diaryEditForm').addEventListener('submit', function(e) {
+        const title = document.getElementById('title').value.trim();
+        const content = quill.getText().trim();
+        
+        if (!title || !content) {
+            e.preventDefault();
+            alert('Titolo e contenuto sono obbligatori');
+            return false;
+        }
+        
+        // Mostra loading
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Salvando...';
+        submitBtn.disabled = true;
+    });
+    
+    // Avviso per modifiche non salvate
+    let hasUnsavedChanges = false;
+    
+    ['title', 'activity_type', 'priority', 'status', 'tags'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+            });
+        }
+    });
+    
+    // Ascolta modifiche nel content (Quill o textarea)
+    if (useQuill && quill) {
+        quill.on('text-change', function() {
+            hasUnsavedChanges = true;
+        });
+    } else {
+        document.getElementById('content').addEventListener('input', function() {
+            hasUnsavedChanges = true;
+        });
+    }
+    
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    });
+</script>
+{% endblock %}

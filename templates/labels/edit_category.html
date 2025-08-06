@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica Categoria -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_labels') }}">Etichette</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('labels.list_categories') }}">Categorie</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Modifica {{ category.name }}</li>
+            </ol>
+        </nav>
+        
+        <h2>
+            <i class="bi bi-pencil me-2"></i>Modifica Categoria
+        </h2>
+        <p class="text-muted">Modifica la categoria <strong>{{ category.name }}</strong></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-collection me-2"></i>Informazioni Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Nome univoco per identificare la categoria
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Descrizione opzionale della categoria
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.color.label(class="form-label") }}
+                                <div class="d-flex align-items-center">
+                                    {{ form.color(class="form-control form-control-color me-2", style="width: 60px; height: 38px;") }}
+                                    <span id="colorPreview" class="badge" style="background-color: {{ category.color }}; color: white; padding: 8px 12px;">
+                                        {{ category.color.upper() }}
+                                    </span>
+                                </div>
+                                {% if form.color.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.color.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {{ form.color.description }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Stato</label>
+                                <div class="form-check">
+                                    {{ form.is_active(class="form-check-input") }}
+                                    {{ form.is_active.label(class="form-check-label") }}
+                                </div>
+                                <div class="form-text">
+                                    Solo le categorie attive sono disponibili per le nuove etichette
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Salva Modifiche
+                        </button>
+                        <a href="{{ url_for('labels.list_categories') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i>Annulla
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Informazioni Categoria
+                </h6>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Creata il:</dt>
+                    <dd class="col-sm-8">{{ category.created_at.strftime('%d/%m/%Y %H:%M') if category.created_at else 'N/A' }}</dd>
+                    
+                    <dt class="col-sm-4">Ultima modifica:</dt>
+                    <dd class="col-sm-8">{{ category.updated_at.strftime('%d/%m/%Y %H:%M') if category.updated_at else 'N/A' }}</dd>
+                    
+                    <dt class="col-sm-4">Etichette associate:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-info">{{ category.labels|length }}</span>
+                    </dd>
+                </dl>
+                
+                {% if category.labels %}
+                <hr>
+                <h6>Etichette che usano questa categoria:</h6>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for label in category.labels[:10] %}
+                    <span class="badge" style="background-color: {{ label.color }}; color: white;">
+                        {{ label.name }}
+                    </span>
+                    {% endfor %}
+                    {% if category.labels|length > 10 %}
+                    <span class="text-muted small">e {{ category.labels|length - 10 }} altre...</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if category.labels|length == 0 %}
+        <div class="card mt-3">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Zona Pericolosa
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Questa categoria non è utilizzata da nessuna etichetta. 
+                    Puoi eliminarla se non è più necessaria.
+                </p>
+                <button type="button" 
+                        class="btn btn-outline-danger btn-sm" 
+                        onclick="confirmDelete()">
+                    <i class="bi bi-trash me-1"></i>Elimina Categoria
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal per conferma eliminazione -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Conferma Eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare la categoria <strong>{{ category.name }}</strong>?</p>
+                <p class="text-danger">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Questa azione è irreversibile.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form method="POST" action="{{ url_for('labels.delete_category', category_id=category.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger">Elimina</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.getElementById('color');
+    const colorPreview = document.getElementById('colorPreview');
+    
+    // Aggiorna l'anteprima del colore
+    function updateColorPreview() {
+        const color = colorInput.value;
+        colorPreview.style.backgroundColor = color;
+        colorPreview.textContent = color.toUpperCase();
+        
+        // Calcola se usare testo bianco o nero basato sulla luminanza
+        const r = parseInt(color.substr(1, 2), 16);
+        const g = parseInt(color.substr(3, 2), 16);
+        const b = parseInt(color.substr(5, 2), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        
+        colorPreview.style.color = luminance > 0.5 ? '#000' : '#fff';
+    }
+    
+    // Aggiorna quando cambia il colore
+    colorInput.addEventListener('change', updateColorPreview);
+    colorInput.addEventListener('input', updateColorPreview);
+});
+
+function confirmDelete() {
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

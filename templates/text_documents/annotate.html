@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Etichettamento: {{ document.original_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-tags"></i> 
+                    Etichettamento: {{ document.original_name }}
+                </h2>
+                <div>
+                    <a href="{{ url_for('text_documents.annotations', document_id=document.id) }}" 
+                       class="btn btn-outline-info me-2">
+                        <i class="bi bi-list-check"></i> Gestisci Annotazioni
+                    </a>
+                    <a href="{{ url_for('text_documents.list_documents') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna alla Lista
+                    </a>
+                </div>
+            </div>
+
+            <!-- Informazioni Documento -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Tipo:</strong>
+                                    {% if document.document_type == 'focus_group' %}
+                                        <span class="badge bg-info">Focus Group</span>
+                                    {% elif document.document_type == 'interview' %}
+                                        <span class="badge bg-success">Intervista</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Altro</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Parole:</strong> {{ document.word_count }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Annotazioni:</strong> {{ stats.annotations_count }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Copertura:</strong> {{ "%.1f"|format(stats.coverage_percentage) }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6><i class="bi bi-lightbulb"></i> Modalità d'Uso</h6>
+                            <p class="small mb-0">
+                                Seleziona del testo nel documento per creare una nuova annotazione. 
+                                Clicca su un'annotazione esistente per visualizzarne i dettagli.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Contenuto Documento -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-file-text"></i> Contenuto Documento
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary" id="toggleLineNumbers">
+                                    <i class="bi bi-list-ol"></i> Numeri Riga
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" id="clearSelection">
+                                    <i class="bi bi-x-circle"></i> Cancella Selezione
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="documentContent" class="p-3" style="max-height: 70vh; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6;">
+                                {{ document.content }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Etichette -->
+                <div class="col-lg-4">
+                    <!-- Etichette Disponibili -->
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="bi bi-tags"></i> Etichette Disponibili
+                            </h6>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary" id="reloadLabels" title="Ricarica etichette">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <a href="{{ url_for('labels.create_label') }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-plus"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            {% if labels_json %}
+                                {% set categories = {} %}
+                                {% for label in labels_json %}
+                                    {% if label.category %}
+                                        {% if label.category not in categories %}
+                                            {% set _ = categories.update({label.category: []}) %}
+                                        {% endif %}
+                                        {% set _ = categories[label.category].append(label) %}
+                                    {% else %}
+                                        {% if 'Senza categoria' not in categories %}
+                                            {% set _ = categories.update({'Senza categoria': []}) %}
+                                        {% endif %}
+                                        {% set _ = categories['Senza categoria'].append(label) %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% for category_name, category_labels in categories.items() %}
+                                    <div class="mb-3">
+                                        <h6 class="text-muted small fw-bold mb-2">
+                                            <i class="bi bi-folder"></i> {{ category_name }}
+                                        </h6>
+                                        {% for label in category_labels %}
+                                        <div class="d-flex align-items-center mb-2 label-item ps-2" 
+                                             data-label-id="{{ label.id }}"
+                                             data-label-name="{{ label.name }}"
+                                             data-label-color="{{ label.color or '#007bff' }}">
+                                            <div class="label-color-indicator me-2" 
+                                                 style="width: 12px; height: 12px; background-color: {{ label.color or '#007bff' }}; border-radius: 2px;"></div>
+                                            <span class="flex-grow-1">{{ label.name }}</span>
+                                            <small class="text-muted">0</small>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted small">Nessuna etichetta disponibile.</p>
+                                <a href="{{ url_for('labels.create_label') }}" class="btn btn-sm btn-outline-primary">
+                                    Crea Etichette
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Annotazioni Esistenti -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="bi bi-list-check"></i> Annotazioni (0)
+                            </h6>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;" id="annotationsList">
+                            <div class="p-3 text-center text-muted">
+                                <i class="bi bi-info-circle"></i><br>
+                                Nessuna annotazione presente.<br>
+                                Seleziona del testo per iniziare.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuova Annotazione -->
+<div class="modal fade" id="annotationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-tag"></i> Nuova Annotazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Testo Selezionato:</label>
+                    <div id="selectedText" class="bg-light p-2 rounded border small" style="max-height: 100px; overflow-y: auto;"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="labelSelect" class="form-label">Seleziona Etichetta:</label>
+                    <select class="form-select" id="labelSelect" required>
+                        <option value="">-- Seleziona un'etichetta --</option>
+                        {% set categories = {} %}
+                        {% for label in labels_json %}
+                            {% if label.category %}
+                                {% if label.category not in categories %}
+                                    {% set _ = categories.update({label.category: []}) %}
+                                {% endif %}
+                                {% set _ = categories[label.category].append(label) %}
+                            {% else %}
+                                {% if 'Senza categoria' not in categories %}
+                                    {% set _ = categories.update({'Senza categoria': []}) %}
+                                {% endif %}
+                                {% set _ = categories['Senza categoria'].append(label) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for category_name, category_labels in categories.items() %}
+                            <optgroup label="{{ category_name }}">
+                                {% for label in category_labels %}
+                                <option value="{{ label.id }}" data-color="{{ label.color or '#007bff' }}">
+                                    {{ label.name }}
+                                    {% if label.description %} - {{ label.description[:50] }}{% if label.description|length > 50 %}...{% endif %}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Posizione: <span id="positionInfo"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" id="saveAnnotation">
+                    <i class="bi bi-check"></i> Salva Annotazione
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dettagli Annotazione -->
+<div class="modal fade" id="annotationDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle"></i> Dettagli Annotazione
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="annotationDetailsContent">
+                <!-- Contenuto caricato dinamicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/text_annotation.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Variabili utente globali
+    window.currentUserId = {{ current_user.id }};
+    window.currentUserName = "{{ current_user.username }}";
+    
+    // Inizializza il sistema di annotazione
+    const annotationSystem = new TextAnnotationSystem({
+        documentId: {{ document.id }},
+        containerId: 'documentContent',
+        annotations: {{ annotations_json|tojson }},
+        labels: {{ labels_json|tojson }}
+    });
+    
+    // Esponi globalmente per l'accesso dai modal
+    window.annotationSystem = annotationSystem;
+    
+    // Gestione eliminazione annotazioni
+    document.querySelectorAll('.delete-annotation').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            if (confirm('Sei sicuro di voler eliminare questa annotazione?')) {
+                annotationSystem.deleteAnnotation(annotationId);
+            }
+        });
+    });
+    
+    // Toggle numeri di riga
+    document.getElementById('toggleLineNumbers').addEventListener('click', function() {
+        annotationSystem.toggleLineNumbers();
+    });
+    
+    // Cancella selezione
+    document.getElementById('clearSelection').addEventListener('click', function() {
+        annotationSystem.clearSelection();
+    });
+    
+    // Ricarica etichette
+    document.getElementById('reloadLabels').addEventListener('click', async function() {
+        const button = this;
+        const icon = button.querySelector('i');
+        
+        // Animazione loading
+        icon.className = 'bi bi-arrow-clockwise spin';
+        button.disabled = true;
+        
+        const success = await annotationSystem.reloadLabels();
+        
+        // Reset animazione
+        icon.className = 'bi bi-arrow-clockwise';
+        button.disabled = false;
+        
+        if (success) {
+            annotationSystem.showToast('Etichette ricaricate con successo', 'success');
+        } else {
+            annotationSystem.showToast('Errore nel ricaricamento delle etichette', 'error');
+        }
+    });
+    
+    // Auto-reload quando la finestra riceve focus (utile quando si apre "Crea etichetta" in nuova tab)
+    window.addEventListener('focus', async function() {
+        await annotationSystem.reloadLabels();
+    });
+});
+</script>
+{% endblock %}

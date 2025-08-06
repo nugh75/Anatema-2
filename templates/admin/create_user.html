@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Crea Nuovo Utente{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-user-plus"></i> Crea Nuovo Utente</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <small class="form-text text-muted">Minimo 6 caratteri</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="role">Ruolo</label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="annotatore">Annotatore</option>
+                                <option value="amministratore">Amministratore</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Crea Utente
+                            </button>
+                            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annulla
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

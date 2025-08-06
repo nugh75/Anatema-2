@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Crea Etichetta -Anatema{% endblock %}
+
+{% block head %}
+<style>
+.color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #dee2e6;
+    display: inline-block;
+    vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Crea Nuova Etichetta
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-lightbulb me-2"></i>Suggerimenti per una Buona Etichetta
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Nome:</strong> Scegli un nome chiaro e conciso</li>
+                        <li><strong>Descrizione:</strong> Aggiungi una descrizione dettagliata per garantire coerenza tra etichettatori</li>
+                        <li><strong>Categoria:</strong> Raggruppa etichette simili (es. emozioni, opinioni, strategie)</li>
+                        <li><strong>Colore:</strong> Scegli un colore distintivo per facilitare l'identificazione visiva</li>
+                    </ul>
+                </div>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    {% if request.args.get('next') %}
+                    <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.description.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Descrivi quando e come utilizzare questa etichetta</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.category_id.label(class="form-label") }}
+                                {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else ""), id="categorySelect") }}
+                                {% if form.category_id.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.category_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {{ form.category_id.description }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <a href="{{ url_for('labels.list_categories', next=request.args.get('next')) if request.args.get('next') else url_for('labels.list_categories') }}" class="text-decoration-none">
+                                        <i class="bi bi-gear me-1"></i>Gestisci Categorie
+                                    </a>
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="showNewCategory">
+                                    <label class="form-check-label" for="showNewCategory">
+                                        Crea nuova categoria
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="newCategorySection" class="border rounded p-3 mb-3" style="display: none; background-color: #f8f9fa;">
+                        <h6 class="text-muted mb-3">
+                            <i class="bi bi-plus-circle me-2"></i>Nuova Categoria
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.new_category.label(class="form-label") }}
+                                    {{ form.new_category(class="form-control" + (" is-invalid" if form.new_category.errors else "")) }}
+                                    {% if form.new_category.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.new_category.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        {{ form.new_category.description }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.new_category_description.label(class="form-label") }}
+                                    {{ form.new_category_description(class="form-control" + (" is-invalid" if form.new_category_description.errors else "")) }}
+                                    {% if form.new_category_description.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.new_category_description.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">{{ form.color.label.text }}</label>
+                        <div class="d-flex align-items-center">
+                            {{ form.color(class="form-control me-3", style="width: 80px;") }}
+                            <span class="color-preview" id="color-preview" style="background-color: #007bff;"></span>
+                        </div>
+                        {% if form.color.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in form.color.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Il colore aiuta a identificare rapidamente l'etichetta</div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check2 me-2"></i>Crea Etichetta
+                        </button>
+                        <a href="{{ url_for('labels.list_labels') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Annulla
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Esempi di categorie -->
+        <div class="mt-4">
+            <h5>
+                <i class="bi bi-collection me-2"></i>Esempi di Categorie Comuni
+            </h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary">Emozioni e Sentimenti</h6>
+                            <small class="text-muted">
+                                gioia, tristezza, ansia, frustrazione, soddisfazione, entusiasmo
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">Strategie di Apprendimento</h6>
+                            <small class="text-muted">
+                                memorizzazione, ripetizione, elaborazione, organizzazione, auto-regolazione
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.getElementById('color');
+    const colorPreview = document.getElementById('color-preview');
+    const showNewCategoryCheckbox = document.getElementById('showNewCategory');
+    const newCategorySection = document.getElementById('newCategorySection');
+    const categorySelect = document.getElementById('categorySelect');
+    
+    // Mappa dei colori delle categorie (passata dal backend)
+    const categoryColors = {
+        {% for option in form.category_id.choices %}
+        {% if option[0] != 0 %}
+        '{{ option[0] }}': '{{ category_colors.get(option[0], "#007bff") }}',
+        {% endif %}
+        {% endfor %}
+    };
+    
+    // Aggiorna preview del colore
+    function updateColorPreview() {
+        if (colorInput && colorPreview) {
+            colorPreview.style.backgroundColor = colorInput.value;
+        }
+    }
+    
+    // Eredita il colore dalla categoria selezionata
+    function inheritCategoryColor() {
+        if (categorySelect && colorInput && !showNewCategoryCheckbox.checked) {
+            const selectedCategoryId = categorySelect.value;
+            if (selectedCategoryId && selectedCategoryId !== '0' && categoryColors[selectedCategoryId]) {
+                colorInput.value = categoryColors[selectedCategoryId];
+                updateColorPreview();
+            }
+        }
+    }
+    
+    if (colorInput) {
+        colorInput.addEventListener('change', updateColorPreview);
+        colorInput.addEventListener('input', updateColorPreview);
+        // Imposta il colore iniziale
+        updateColorPreview();
+    }
+    
+    // Gestisci cambio categoria per ereditare il colore
+    if (categorySelect) {
+        categorySelect.addEventListener('change', inheritCategoryColor);
+        // Eredita il colore al caricamento se una categoria è già selezionata
+        inheritCategoryColor();
+    }
+    
+    // Gestisci visualizzazione sezione nuova categoria
+    if (showNewCategoryCheckbox && newCategorySection && categorySelect) {
+        showNewCategoryCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                newCategorySection.style.display = 'block';
+                categorySelect.disabled = true;
+                categorySelect.value = '0'; // Nessuna categoria
+                // Ripristina colore default per nuova categoria
+                colorInput.value = '#007bff';
+                updateColorPreview();
+            } else {
+                newCategorySection.style.display = 'none';
+                categorySelect.disabled = false;
+                // Pulisci i campi della nuova categoria
+                const newCategoryInputs = newCategorySection.querySelectorAll('input, textarea');
+                newCategoryInputs.forEach(input => input.value = '');
+                // Eredita il colore della categoria selezionata
+                inheritCategoryColor();
+            }
+        });
+    }
+    
+    // Auto-focus sul primo campo
+    const nameField = document.getElementById('name');
+    if (nameField) {
+        nameField.focus();
+    }
+});
+</script>
+{% endblock %}

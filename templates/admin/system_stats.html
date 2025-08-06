@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche Sistema{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="fas fa-chart-bar"></i> Statistiche Sistema</h2>
+            
+            <!-- Statistiche Utenti -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center border-primary">
+                        <div class="card-body">
+                            <h3 class="card-title text-primary">{{ stats.users.total }}</h3>
+                            <p class="card-text">Utenti Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-success">
+                        <div class="card-body">
+                            <h3 class="card-title text-success">{{ stats.users.active }}</h3>
+                            <p class="card-text">Utenti Attivi</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-warning">
+                        <div class="card-body">
+                            <h3 class="card-title text-warning">{{ stats.users.administrators }}</h3>
+                            <p class="card-text">Amministratori</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-info">
+                        <div class="card-body">
+                            <h3 class="card-title text-info">{{ stats.users.annotators }}</h3>
+                            <p class="card-text">Annotatori</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiche Contenuti -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center border-secondary">
+                        <div class="card-body">
+                            <h3 class="card-title text-secondary">{{ stats.content.labels }}</h3>
+                            <p class="card-text">Etichette</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-dark">
+                        <div class="card-body">
+                            <h3 class="card-title text-dark">{{ stats.content.excel_files }}</h3>
+                            <p class="card-text">File Excel</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-primary">
+                        <div class="card-body">
+                            <h3 class="card-title text-primary">{{ stats.content.text_cells }}</h3>
+                            <p class="card-text">Celle di Testo</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center border-success">
+                        <div class="card-body">
+                            <h3 class="card-title text-success">{{ stats.content.annotations }}</h3>
+                            <p class="card-text">Annotazioni</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attività Recente -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-clock"></i> Ultimi Login</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if stats.recent_activity.recent_users %}
+                            <div class="list-group list-group-flush">
+                                {% for user in stats.recent_activity.recent_users %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ user.username }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ user.email }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        {% if user.last_login %}
+                                        <small>{{ user.last_login.strftime('%d/%m/%Y %H:%M') }}</small>
+                                        {% else %}
+                                        <small class="text-muted">Mai</small>
+                                        {% endif %}
+                                        <br>
+                                        <span class="badge badge-{% if user.role == 'amministratore' %}warning{% else %}primary{% endif %}">
+                                            {{ user.role.title() }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">Nessun login recente</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-file-upload"></i> File Caricati di Recente</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if stats.recent_activity.recent_files %}
+                            <div class="list-group list-group-flush">
+                                {% for file in stats.recent_activity.recent_files %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ file.original_filename }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                Caricato il {{ file.uploaded_at.strftime('%d/%m/%Y %H:%M') }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="text-muted">Nessun file caricato di recente</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

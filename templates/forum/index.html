@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Forum Annotatori - Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-chat-dots me-2"></i>Forum Annotatori
+                    </h2>
+                    <p class="text-muted mb-0">Discussioni e collaborazione tra annotatori per ogni file Excel</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('annotation.browse_annotations') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna alle Annotazioni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if files_with_stats %}
+    <!-- Lista dei file con forum -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-folder me-2"></i>File Excel con Forum Attivi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50%;">File Excel</th>
+                                    <th class="text-center" style="width: 15%;">Categorie</th>
+                                    <th class="text-center" style="width: 15%;">Post</th>
+                                    <th class="text-center" style="width: 20%;">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file, category_count, post_count in files_with_stats %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-file-earmark-excel text-success me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">{{ file.original_filename }}</h6>
+                                                <small class="text-muted">
+                                                    Caricato il {{ file.uploaded_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary fs-6">{{ category_count or 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info fs-6">{{ post_count or 0 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('forum.file_forum', file_id=file.id) }}" 
+                                               class="btn btn-primary btn-sm">
+                                                <i class="bi bi-chat-dots me-1"></i>Entra nel Forum
+                                            </a>
+                                            <a href="{{ url_for('excel.view_file', file_id=file.id) }}" 
+                                               class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-eye me-1"></i>Vedi File
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche rapide -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-folder display-4 text-primary mb-3"></i>
+                    <h4>{{ files_with_stats|length }}</h4>
+                    <p class="mb-0">File con Forum</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-collection display-4 text-success mb-3"></i>
+                    <h4>{{ files_with_stats|sum(attribute='1') }}</h4>
+                    <p class="mb-0">Categorie Totali</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-chat-text display-4 text-info mb-3"></i>
+                    <h4>{{ files_with_stats|sum(attribute='2') }}</h4>
+                    <p class="mb-0">Post Totali</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Stato vuoto -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-chat-dots display-1 text-muted mb-4"></i>
+                    <h4 class="text-muted">Nessun Forum Disponibile</h4>
+                    <p class="text-muted mb-4">
+                        I forum vengono creati automaticamente quando carichi file Excel.
+                        Carica il tuo primo file per iniziare le discussioni con altri annotatori.
+                    </p>
+                    <a href="{{ url_for('excel.upload') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-cloud-upload me-2"></i>Carica File Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

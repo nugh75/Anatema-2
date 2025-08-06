@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Template AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-file-text"></i> Gestione Template AI</h2>
+                <a href="{{ url_for('admin.create_template') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuovo Template
+                </a>
+            </div>
+
+            <!-- Statistiche Template -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-text display-4 mb-2"></i>
+                            <h4>{{ templates|length }}</h4>
+                            <p class="mb-0">Template Totali</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-check-circle display-4 mb-2"></i>
+                            <h4>{{ templates|selectattr('is_active')|list|length }}</h4>
+                            <p class="mb-0">Template Attivi</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-tags display-4 mb-2"></i>
+                            <h4>{{ templates|map(attribute='category')|unique|list|length }}</h4>
+                            <p class="mb-0">Categorie</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="bi bi-clock display-4 mb-2"></i>
+                            <h4>{{ templates|selectattr('updated_at')|list|length }}</h4>
+                            <p class="mb-0">Aggiornati di Recente</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list"></i> Elenco Template
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if templates %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Descrizione</th>
+                                    <th>Stato</th>
+                                    <th>Creato</th>
+                                    <th>Ultimo Aggiornamento</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr class="{% if not template.is_active %}table-secondary{% endif %}" data-template-id="{{ template.id }}">
+                                    <td>
+                                        <strong>{{ template.name }}</strong>
+                                        {% if not template.is_active %}
+                                            <span class="badge bg-secondary ms-1">Disattivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if template.category %}
+                                            <span class="badge bg-info">{{ template.category }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if template.description %}
+                                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ template.description }}">
+                                                {{ template.description }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">Nessuna descrizione</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}">
+                                            {% if template.is_active %}Attivo{% else %}Disattivo{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ template.created_at.strftime('%d/%m/%Y %H:%M') if template.created_at else '-' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ template.updated_at.strftime('%d/%m/%Y %H:%M') if template.updated_at else '-' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- Anteprima -->
+                                            <button type="button" class="btn btn-sm btn-outline-info preview-template" 
+                                                    data-template-id="{{ template.id }}" title="Anteprima">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            
+                                            <!-- Modifica -->
+                                            <a href="{{ url_for('admin.edit_template', template_id=template.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Modifica">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            
+                                            <!-- Attiva/Disattiva -->
+                                            <button type="button" class="btn btn-sm btn-outline-{% if template.is_active %}warning{% else %}success{% endif %} toggle-template" 
+                                                    data-template-id="{{ template.id }}" title="{% if template.is_active %}Disattiva{% else %}Attiva{% endif %}">
+                                                <i class="bi bi-{% if template.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                            
+                                            <!-- Elimina -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-template" 
+                                                    data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" title="Elimina">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-file-text display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Nessun template trovato</h5>
+                        <p class="text-muted mb-3">Inizia creando il tuo primo template AI.</p>
+                        <a href="{{ url_for('admin.create_template') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Crea Primo Template
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Anteprima Template -->
+<div class="modal fade" id="templatePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-eye me-2"></i>Anteprima Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-loading" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Generazione anteprima...</p>
+                </div>
+                
+                <div id="preview-content" style="display: none;">
+                    <!-- Statistiche -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded text-center">
+                                <div class="fw-bold text-primary" id="preview-labels">-</div>
+                                <small class="text-muted">Etichette</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-info bg-opacity-10 p-2 rounded text-center">
+                                <div class="fw-bold text-info" id="preview-categories">-</div>
+                                <small class="text-muted">Categorie</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-success bg-opacity-10 p-2 rounded text-center">
+                                <div class="fw-bold text-success" id="preview-texts">-</div>
+                                <small class="text-muted">Testi Esempio</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Prompt Generato -->
+                    <h6>Prompt Generato:</h6>
+                    <textarea id="preview-prompt" class="form-control" rows="15" readonly 
+                              style="font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85em; background: #f8f9fa;"></textarea>
+                </div>
+                
+                <div id="preview-error" class="alert alert-danger" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="copy-preview">
+                    <i class="bi bi-clipboard me-1"></i>Copia Prompt
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Gestione anteprima template
+    document.querySelectorAll('.preview-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            showTemplatePreview(templateId);
+        });
+    });
+    
+    // Gestione attiva/disattiva template
+    document.querySelectorAll('.toggle-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            toggleTemplate(templateId, this);
+        });
+    });
+    
+    // Gestione eliminazione template
+    document.querySelectorAll('.delete-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            const templateName = this.dataset.templateName;
+            deleteTemplate(templateId, templateName);
+        });
+    });
+    
+    // Copia anteprima
+    document.getElementById('copy-preview').addEventListener('click', function() {
+        const previewText = document.getElementById('preview-prompt').value;
+        if (previewText) {
+            navigator.clipboard.writeText(previewText).then(() => {
+                showToast('Prompt copiato negli appunti!', 'success');
+            }).catch(() => {
+                showToast('Errore nella copia del prompt', 'error');
+            });
+        }
+    });
+    
+    function showTemplatePreview(templateId) {
+        const modal = new bootstrap.Modal(document.getElementById('templatePreviewModal'));
+        const loadingDiv = document.getElementById('preview-loading');
+        const contentDiv = document.getElementById('preview-content');
+        const errorDiv = document.getElementById('preview-error');
+        
+        // Reset modal
+        loadingDiv.style.display = 'block';
+        contentDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+        
+        modal.show();
+        
+        // Carica anteprima
+        fetch(`/admin/templates/${templateId}/preview`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingDiv.style.display = 'none';
+            
+            if (data.success) {
+                document.getElementById('preview-labels').textContent = data.labels_count || '-';
+                document.getElementById('preview-categories').textContent = data.categories_used?.length || '-';
+                document.getElementById('preview-texts').textContent = data.sample_texts_count || '-';
+                document.getElementById('preview-prompt').value = data.preview || '';
+                
+                contentDiv.style.display = 'block';
+            } else {
+                errorDiv.textContent = data.message || 'Errore nella generazione dell\'anteprima';
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            loadingDiv.style.display = 'none';
+            errorDiv.textContent = 'Errore di connessione: ' + error.message;
+            errorDiv.style.display = 'block';
+        });
+    }
+    
+    function toggleTemplate(templateId, button) {
+        fetch(`/admin/templates/${templateId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                
+                // Aggiorna UI
+                const row = button.closest('tr');
+                const icon = button.querySelector('i');
+                const badge = row.querySelector('.badge');
+                
+                if (data.is_active) {
+                    row.classList.remove('table-secondary');
+                    button.classList.remove('btn-outline-success');
+                    button.classList.add('btn-outline-warning');
+                    button.title = 'Disattiva';
+                    icon.className = 'bi bi-pause';
+                    badge.className = 'badge bg-success';
+                    badge.textContent = 'Attivo';
+                } else {
+                    row.classList.add('table-secondary');
+                    button.classList.remove('btn-outline-warning');
+                    button.classList.add('btn-outline-success');
+                    button.title = 'Attiva';
+                    icon.className = 'bi bi-play';
+                    badge.className = 'badge bg-secondary';
+                    badge.textContent = 'Disattivo';
+                }
+                
+                // Aggiorna anche il badge nel nome se presente
+                const nameCell = row.querySelector('td:first-child');
+                const existingBadge = nameCell.querySelector('.badge');
+                if (data.is_active && existingBadge) {
+                    existingBadge.remove();
+                } else if (!data.is_active && !existingBadge) {
+                    nameCell.querySelector('strong').insertAdjacentHTML('afterend', 
+                        '<span class="badge bg-secondary ms-1">Disattivo</span>');
+                }
+                
+            } else {
+                showToast('Errore: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Errore di connessione: ' + error.message, 'error');
+        });
+    }
+    
+    function deleteTemplate(templateId, templateName) {
+        if (confirm(`Sei sicuro di voler eliminare il template "${templateName}"?\n\nQuesta azione è irreversibile.`)) {
+            fetch(`/admin/templates/${templateId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    
+                    // Rimuovi la riga dalla tabella
+                    const row = document.querySelector(`tr[data-template-id="${templateId}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                    
+                    // Se non ci sono più template, ricarica la pagina per mostrare il messaggio vuoto
+                    if (document.querySelectorAll('tbody tr').length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    showToast('Errore: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Errore di connessione: ' + error.message, 'error');
+            });
+        }
+    }
+    
+    function showToast(message, type = 'info') {
+        // Implementazione toast semplice
+        const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-danger' : 'alert-info';
+        const toast = document.createElement('div');
+        toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Rimuovi automaticamente dopo 5 secondi
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

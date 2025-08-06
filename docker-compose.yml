@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anatema
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=anatema-production-secret-key-2025
+      - DATABASE_URL=sqlite:////app/instance/analisi_mu.db
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - MAX_CONTENT_LENGTH=16777216
+      - UPLOAD_FOLDER=uploads
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./instance:/app/instance:rw
+      - ./uploads:/app/uploads:rw
+      - ./backups:/app/backups:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - anatema-network
+
+networks:
+  anatema-network:
+    driver: bridge
+
+volumes:
+  instance:
+    driver: local
+  uploads:
+    driver: local
+  backups:
+    driver: local

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica Utente{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-user-edit"></i> Modifica Utente: {{ user.username }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" 
+                                   value="{{ user.username }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Nuova Password</label>
+                            <input type="password" class="form-control" id="password" name="password">
+                            <small class="form-text text-muted">Lascia vuoto per mantenere la password attuale</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="role">Ruolo</label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="annotatore" {% if user.role == 'annotatore' %}selected{% endif %}>
+                                    Annotatore
+                                </option>
+                                <option value="amministratore" {% if user.role == 'amministratore' %}selected{% endif %}>
+                                    Amministratore
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                       {% if user.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    Account attivo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Creato:</strong> {{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Ultimo login:</strong> 
+                                {% if user.last_login %}
+                                    {{ user.last_login.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                    Mai
+                                {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p><strong>Annotazioni create:</strong> 
+                                    <span class="badge badge-info">{{ user.annotations|length }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salva Modifiche
+                            </button>
+                            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Annulla
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

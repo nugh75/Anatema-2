@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - Forum - Anatema{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        {% if post.is_pinned %}
+                        <i class="bi bi-pin-angle-fill text-warning me-2"></i>
+                        {% endif %}
+                        {% if post.is_locked %}
+                        <i class="bi bi-lock-fill text-danger me-2"></i>
+                        {% endif %}
+                        {{ post.title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Categoria: 
+                        <a href="{{ url_for('forum.category', category_id=post.category_id) }}" 
+                           class="text-decoration-none">{{ post.category.name }}</a>
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('forum.category', category_id=post.category_id) }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Torna alla Categoria
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Post principale -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-circle text-primary me-2 fs-4"></i>
+                            <div>
+                                <h6 class="mb-0">{{ post.author.username }}</h6>
+                                <small class="text-muted">
+                                    {{ post.created_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                    {% if post.updated_at != post.created_at %}
+                                    • Modificato il {{ post.updated_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center text-muted">
+                            <i class="bi bi-eye me-1"></i>
+                            <span>{{ post.views }} visualizzazioni</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="post-content">
+                        {{ post.content|replace('\n', '<br>')|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commenti -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-chat-left me-2"></i>Commenti
+                        <span class="badge bg-primary ms-2">{{ post.comment_count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if comments %}
+                    <div class="comments-section">
+                        {% for comment in comments %}
+                        <div class="comment mb-4 pb-3{% if not loop.last %} border-bottom{% endif %}" 
+                             id="comment-{{ comment.id }}">
+                            <div class="d-flex">
+                                <i class="bi bi-person-circle text-secondary me-3 fs-4 flex-shrink-0"></i>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="mb-0">{{ comment.author.username }}</h6>
+                                            <small class="text-muted">
+                                                {{ comment.created_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                                {% if comment.updated_at != comment.created_at %}
+                                                • Modificato
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="comment-content">
+                                        {{ comment.content|replace('\n', '<br>')|safe }}
+                                    </div>
+                                    
+                                    <!-- Reply annidate -->
+                                    {% if comment.replies %}
+                                    <div class="replies mt-3 ms-4">
+                                        {% for reply in comment.replies %}
+                                        <div class="reply mb-3 pb-2 border-start border-3 border-light ps-3">
+                                            <div class="d-flex">
+                                                <i class="bi bi-person-circle text-secondary me-2 fs-5 flex-shrink-0"></i>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                                        <div>
+                                                            <h6 class="mb-0 small">{{ reply.author.username }}</h6>
+                                                            <small class="text-muted">
+                                                                {{ reply.created_at.strftime('%d/%m/%Y alle %H:%M') }}
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="reply-content small">
+                                                        {{ reply.content|replace('\n', '<br>')|safe }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-chat-left-dots display-4 text-muted mb-3"></i>
+                        <h6 class="text-muted">Nessun commento ancora</h6>
+                        <p class="text-muted">Sii il primo a commentare questo post!</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Form per nuovo commento -->
+                    {% if not post.is_locked %}
+                    <div class="mt-4 pt-4 border-top">
+                        <h6 class="mb-3">
+                            <i class="bi bi-plus-circle me-2"></i>Aggiungi un Commento
+                        </h6>
+                        <form method="POST" action="{{ url_for('forum.add_comment', post_id=post.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="mb-3">
+                                <textarea class="form-control" name="content" rows="4" 
+                                          placeholder="Scrivi il tuo commento..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send me-1"></i>Invia Commento
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="mt-4 pt-4 border-top">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-lock me-2"></i>
+                            Questo post è bloccato e non accetta nuovi commenti.
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Informazioni post -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Informazioni Post
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h6 class="text-primary">{{ post.views }}</h6>
+                            <small class="text-muted">Visualizzazioni</small>
+                        </div>
+                        <div class="col-4">
+                            <h6 class="text-success">{{ post.comment_count }}</h6>
+                            <small class="text-muted">Commenti</small>
+                        </div>
+                        <div class="col-4">
+                            <h6 class="text-info">{{ post.created_at.strftime('%d/%m') }}</h6>
+                            <small class="text-muted">Creato</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categoria info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="{{ post.category.icon }} me-2"></i>Categoria
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-{{ post.category.color }}">{{ post.category.name }}</h6>
+                    {% if post.category.description %}
+                    <p class="text-muted small mb-0">{{ post.category.description }}</p>
+                    {% endif %}
+                    <div class="mt-2">
+                        <a href="{{ url_for('forum.category', category_id=post.category_id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-collection me-1"></i>Vedi Categoria
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azioni rapide -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('forum.file_forum', file_id=post.category.excel_file_id) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Torna al Forum
+                        </a>
+                        <a href="{{ url_for('excel.view_file', file_id=post.category.excel_file_id) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Vedi File Excel
+                        </a>
+                        {% if post.category.question_name %}
+                        <a href="{{ url_for('excel.view_question', file_id=post.category.excel_file_id, question=post.category.question_name) }}" 
+                           class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-question-circle me-1"></i>Vedi Domanda
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.post-content {
+    line-height: 1.6;
+}
+
+.comment-content, .reply-content {
+    line-height: 1.5;
+}
+
+.replies {
+    background-color: rgba(var(--bs-light-rgb), 0.5);
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+</style>
+{% endblock %}

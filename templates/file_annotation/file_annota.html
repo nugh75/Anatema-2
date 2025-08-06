@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Annotazione Celle - {{ excel_file.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>
+                    <i class="bi bi-file-earmark-excel me-2"></i>{{ excel_file.original_filename }}
+                </h2>
+                <p class="text-muted mb-0">
+                    Caricato da {{ excel_file.uploader.username }} il {{ excel_file.uploaded_at.strftime('%d/%m/%Y alle %H:%M') }}
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('excel.list_files') }}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left me-1"></i>Torna alla Lista
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra modalità -->
+<div class="row mb-3">
+    <div class="col-12">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link {% if mode == 'view' %}active{% endif %}" href="?mode=view&sheet={{ current_sheet }}&column={{ current_column }}&annotated_only={{ annotated_only }}">Visualizza</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if mode == 'annotate' %}active{% endif %}" href="?mode=annotate&sheet={{ current_sheet }}&column={{ current_column }}&annotated_only={{ annotated_only }}">Annota</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if mode == 'per_domanda' %}active{% endif %}" href="?mode=per_domanda&sheet={{ current_sheet }}&column={{ current_column }}&annotated_only={{ annotated_only }}">Per Domanda</a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- Filtri -->
+<div class="row mb-3">
+    <div class="col-12">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <div class="col-md-3">
+                <label for="sheet" class="form-label">Foglio</label>
+                <select name="sheet" id="sheet" class="form-select">
+                    <option value="">Tutti</option>
+                    {% for s in sheet_names %}
+                    <option value="{{ s }}" {% if s == current_sheet %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="column" class="form-label">Colonna</label>
+                <select name="column" id="column" class="form-select">
+                    <option value="">Tutte</option>
+                    {% for c in column_names %}
+                    <option value="{{ c }}" {% if c == current_column %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="annotated_only" class="form-label">Stato Annotazione</label>
+                <select name="annotated_only" id="annotated_only" class="form-select">
+                    <option value="">Tutte</option>
+                    <option value="1" {% if annotated_only == '1' %}selected{% endif %}>Solo Annotate</option>
+                    <option value="0" {% if annotated_only == '0' %}selected{% endif %}>Solo Non Annotate</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Applica Filtri
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabella griglia celle -->
+<div class="row">
+    <div class="col-12">
+        {% if mode == 'per_domanda' %}
+        <div class="row mt-4">
+            <div class="col-12">
+                {% for question, cells in cells_by_question.items() %}
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <strong>{{ question }}</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for cell in cells %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="border rounded p-2 h-100">
+                                    <div class="small text-muted mb-1">Riga: {{ cell.row_index + 1 }}</div>
+                                    <div class="cell-content small mb-2">{{ cell.text_content }}</div>
+                                    {% if cell.annotations|length > 0 %}
+                                        <span class="badge bg-success mb-1">{{ cell.annotations|length }} annotazioni</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary mb-1">Non annotata</span>
+                                    {% endif %}
+                                    <div>
+                                        <a href="{{ url_for('annotation.annotate_cell', cell_id=cell.id) }}" class="btn btn-sm btn-outline-primary mt-2">Annota</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>Riga \ Colonna</th>
+                        {% for col in col_names %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in row_indices %}
+                    <tr>
+                        <th class="table-light">{{ row + 1 }}</th>
+                        {% for col in col_names %}
+                        <td>
+                            {% set cell = cell_matrix[row][col] %}
+                            {% if cell %}
+                                <div class="cell-content small mb-1">{{ cell.text_content }}</div>
+                                {% if mode == 'annotate' %}
+                                    <a href="{{ url_for('annotation.annotate_cell', cell_id=cell.id) }}" class="btn btn-sm btn-outline-primary">Annota</a>
+                                {% else %}
+                                    {% if cell.annotations|length > 0 %}
+                                        <span class="badge bg-success">{{ cell.annotations|length }} annotazioni</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

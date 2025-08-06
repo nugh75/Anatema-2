@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiche Dettagliate - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Statistiche Dettagliate - {{ user.username }}</h2>
+                <div>
+                    <a href="{{ url_for('statistics.overview') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Torna alle Statistiche Generali
+                    </a>
+                    <a href="{{ url_for('statistics.compare', user1_id=user.id) }}" class="btn btn-primary">
+                        <i class="fas fa-balance-scale"></i> Confronta con Altri
+                    </a>
+                </div>
+            </div>
+
+            <!-- Statistiche Generali Utente -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ stats.total_annotations }}</h4>
+                                    <p class="mb-0">Annotazioni Totali</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-tags fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ stats.unique_cells }}</h4>
+                                    <p class="mb-0">Celle Annotate</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-th fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ stats.unique_labels }}</h4>
+                                    <p class="mb-0">Etichette Diverse</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-bookmark fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ "%.1f"|format(stats.avg_per_day) }}</h4>
+                                    <p class="mb-0">Media al Giorno</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-day fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grafico Distribuzione Etichette -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-pie"></i> Distribuzione Etichette
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="labelDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-line"></i> Attività nel Tempo
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabelle Dettagliate -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-list"></i> Etichette più Utilizzate
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Etichetta</th>
+                                            <th>Categoria</th>
+                                            <th class="text-center">Utilizzi</th>
+                                            <th class="text-center">%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for label_stat in stats.label_usage %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ label_stat.color }}">
+                                                    {{ label_stat.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ label_stat.category_name }}</td>
+                                            <td class="text-center">{{ label_stat.count }}</td>
+                                            <td class="text-center">{{ "%.1f"|format(label_stat.percentage) }}%</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-clock"></i> Attività Recente
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Azione</th>
+                                            <th>Cella</th>
+                                            <th>Etichetta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for action in stats.recent_actions %}
+                                        <tr>
+                                            <td>{{ action.timestamp.strftime('%d/%m %H:%M') }}</td>
+                                            <td>
+                                                {% if action.action == 'added' %}
+                                                    <span class="badge badge-success">Aggiunta</span>
+                                                {% else %}
+                                                    <span class="badge badge-danger">Rimossa</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ action.cell_id }}</td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ action.label_color }}">
+                                                    {{ action.label_name }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche per Categoria -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-layer-group"></i> Statistiche per Categoria
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th class="text-center">Annotazioni</th>
+                                            <th class="text-center">Etichette Diverse</th>
+                                            <th class="text-center">% del Totale</th>
+                                            <th>Etichetta più Usata</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cat_stat in stats.category_stats %}
+                                        <tr>
+                                            <td><strong>{{ cat_stat.name }}</strong></td>
+                                            <td class="text-center">{{ cat_stat.total_annotations }}</td>
+                                            <td class="text-center">{{ cat_stat.unique_labels }}</td>
+                                            <td class="text-center">{{ "%.1f"|format(cat_stat.percentage) }}%</td>
+                                            <td>
+                                                {% if cat_stat.most_used_label %}
+                                                <span class="badge" style="background-color: {{ cat_stat.most_used_label.color }}">
+                                                    {{ cat_stat.most_used_label.name }} ({{ cat_stat.most_used_label.count }})
+                                                </span>
+                                                {% else %}
+                                                <em>Nessuna</em>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Grafico distribuzione etichette
+    const labelCtx = document.getElementById('labelDistributionChart').getContext('2d');
+    new Chart(labelCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ stats.label_names | tojson }},
+            datasets: [{
+                data: {{ stats.label_counts | tojson }},
+                backgroundColor: {{ stats.label_colors | tojson }},
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    bottom: 20
+                }
+            }
+        }
+    });
+
+    // Grafico timeline
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: {{ stats.timeline_dates | tojson }},
+            datasets: [{
+                label: 'Annotazioni',
+                data: {{ stats.timeline_counts | tojson }},
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            layout: {
+                padding: {
+                    bottom: 20
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

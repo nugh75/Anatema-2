@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard AI -Anatema{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>
+                    <i class="bi bi-robot me-2"></i>Dashboard AI
+                </h2>
+                <p class="text-muted">Gestione e monitoraggio dell'intelligenza artificiale</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="refreshAIStats()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche generali -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-tags display-4 mb-2"></i>
+                <h3>{{ statistics.total_labels }}</h3>
+                <p class="mb-0">Etichette Totali</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-collection display-4 mb-2"></i>
+                <h3>{{ statistics.total_categories }}</h3>
+                <p class="mb-0">Categorie</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-4 mb-2"></i>
+                <h3>{{ "%.1f"|format(statistics.usage_distribution.avg) }}</h3>
+                <p class="mb-0">Utilizzo Medio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle display-4 mb-2"></i>
+                <h3>{{ statistics.usage_distribution.unused_count }}</h3>
+                <p class="mb-0">Etichette Inutilizzate</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configurazione AI -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear me-2"></i>Configurazione AI
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ai_config %}
+                <div class="mb-3">
+                    <strong>Modello:</strong> {{ ai_config.model_name }}
+                </div>
+                <div class="mb-3">
+                    <strong>Provider:</strong> {{ ai_config.provider }}
+                </div>
+                <div class="mb-3">
+                    <strong>Stato:</strong> 
+                    <span class="badge bg-{{ 'success' if ai_config.is_active else 'danger' }}">
+                        {{ 'Attivo' if ai_config.is_active else 'Inattivo' }}
+                    </span>
+                </div>
+                <div class="mb-3">
+                    <strong>Ultima modifica:</strong> {{ ai_config.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-exclamation-circle display-4 text-muted"></i>
+                    <p class="text-muted mt-2">Nessuna configurazione AI trovata</p>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.ai_config') }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-gear me-1"></i>Configura
+                    </a>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="testAIConnection()">
+                        <i class="bi bi-wifi me-1"></i>Test Connessione
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity me-2"></i>Attività Recente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for file in files[:5] %}
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ file.original_filename }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ file.uploaded_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('ai.generate_annotations', file_id=file.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-robot me-1"></i>Annota
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Distribuzione per categoria -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Distribuzione Etichette per Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category_name, category_info in statistics.labels_by_category.items() %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-start border-4 border-primary">
+                            <div class="card-body py-3">
+                                <h6 class="mb-1">{{ category_name }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-primary">{{ category_info.count }} etichette</span>
+                                    <small class="text-muted">
+                                        {{ "%.1f"|format((category_info.count / statistics.total_labels * 100) if statistics.total_labels > 0 else 0) }}%
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Etichette più usate -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Etichette Più Usate
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if statistics.most_used_labels %}
+                <div class="list-group list-group-flush">
+                    {% for label in statistics.most_used_labels %}
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>{{ label.name }}</strong>
+                            <span class="badge bg-success">{{ label.usage }} utilizzi</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-graph-up display-4 text-muted"></i>
+                    <p class="text-muted mt-2">Nessuna etichetta ancora utilizzata</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Etichette Inutilizzate
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if statistics.least_used_labels %}
+                <div class="list-group list-group-flush">
+                    {% for label in statistics.least_used_labels[:10] %}
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>{{ label.name }}</strong>
+                            <span class="badge bg-secondary">{{ label.usage }} utilizzi</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-check-circle display-4 text-success"></i>
+                    <p class="text-muted mt-2">Tutte le etichette sono utilizzate!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Azioni rapide -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>Azioni Rapide
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-success" onclick="generatePrompt()">
+                        <i class="bi bi-file-text me-1"></i>Genera Prompt
+                    </button>
+                    <button class="btn btn-info" onclick="exportLabels()">
+                        <i class="bi bi-download me-1"></i>Esporta Etichette
+                    </button>
+                    <button class="btn btn-warning" onclick="validateAllLabels()">
+                        <i class="bi bi-check-circle me-1"></i>Valida Etichette
+                    </button>
+                    <a href="{{ url_for('labels.list_labels') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-tags me-1"></i>Gestisci Etichette
+                    </a>
+                    <a href="{{ url_for('labels.list_categories') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-collection me-1"></i>Gestisci Categorie
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per visualizzare il prompt -->
+<div class="modal fade" id="promptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-text me-2"></i>Prompt per AI
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Prompt generato:</label>
+                    <textarea id="promptText" class="form-control" rows="15" readonly></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="copyPrompt()">
+                        <i class="bi bi-clipboard me-1"></i>Copia
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="downloadPrompt()">
+                        <i class="bi bi-download me-1"></i>Scarica
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshAIStats() {
+    window.location.reload();
+}
+
+function testAIConnection() {
+    fetch('/ai/test-connection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Connessione AI: OK');
+        } else {
+            alert('Errore connessione AI: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Errore: ' + error);
+    });
+}
+
+function generatePrompt() {
+    fetch('/ai/prompt/annotation')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('promptText').value = data.prompt;
+                const modal = new bootstrap.Modal(document.getElementById('promptModal'));
+                modal.show();
+            } else {
+                alert('Errore: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Errore: ' + error);
+        });
+}
+
+function copyPrompt() {
+    const promptText = document.getElementById('promptText');
+    promptText.select();
+    document.execCommand('copy');
+    alert('Prompt copiato negli appunti!');
+}
+
+function downloadPrompt() {
+    const promptText = document.getElementById('promptText').value;
+    const blob = new Blob([promptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai_prompt.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function exportLabels() {
+    fetch('/ai/labels/for-ai')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const blob = new Blob([JSON.stringify(data.labels, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'etichette_ai.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                alert('Errore: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Errore: ' + error);
+        });
+}
+
+function validateAllLabels() {
+    fetch('/ai/validate-labels', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Validazione completata: ' + data.message);
+        } else {
+            alert('Errore validazione: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Errore: ' + error);
+    });
+}
+</script>
+{% endblock %}

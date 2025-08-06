@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Modifica Configurazione AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.loading-spinner {
+    width: 1rem;
+    height: 1rem;
+}
+
+.test-result {
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.test-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-robot me-2"></i>
+                        Modifica Configurazione AI
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- Nome configurazione -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome Configurazione</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ config.name }}" required>
+                            <div class="form-text">Nome descrittivo per questa configurazione</div>
+                        </div>
+
+                        <!-- Provider -->
+                        <div class="mb-3">
+                            <label for="provider" class="form-label">Provider AI</label>
+                            <select class="form-select" id="provider" name="provider" required onchange="toggleProviderSettings()">
+                                <option value="ollama" {{ 'selected' if config.provider == 'ollama' else '' }}>Ollama (Locale)</option>
+                                <option value="openrouter" {{ 'selected' if config.provider == 'openrouter' else '' }}>OpenRouter (Cloud)</option>
+                            </select>
+                        </div>
+
+                        <!-- Configurazione Ollama -->
+                        <div id="ollama-settings" class="provider-settings mb-3" style="display: {{ 'block' if config.provider == 'ollama' else 'none' }}">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">Configurazione Ollama</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="ollama_url" class="form-label">URL Server Ollama</label>
+                                        <input type="url" class="form-control" id="ollama_url" name="ollama_url" 
+                                               value="{{ config.ollama_url or 'http://192.168.129.14:11435' }}"
+                                               placeholder="http://192.168.129.14:11435">
+                                        <div class="form-text">URL del server Ollama (include porta)</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="ollama_model" class="form-label">Modello</label>
+                                        <select class="form-select" id="ollama_model" name="ollama_model">
+                                            <option value="">Seleziona un modello...</option>
+                                            {% for model in ollama_models %}
+                                            <option value="{{ model.name }}:{{ model.tag }}" 
+                                                    {{ 'selected' if config.ollama_model == (model.name + ':' + model.tag) else '' }}
+                                                    data-size="{{ '%.1f'|format(model.size / 1024**3) }} GB">
+                                                {{ model.name }}:{{ model.tag }} 
+                                                ({{ '%.1f'|format(model.size / 1024**3) }} GB)
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text">Scegli un modello installato su Ollama</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configurazione OpenRouter -->
+                        <div id="openrouter-settings" class="provider-settings mb-3" style="display: {{ 'block' if config.provider == 'openrouter' else 'none' }}">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">Configurazione OpenRouter</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="openrouter_api_key" class="form-label">API Key</label>
+                                        <input type="password" class="form-control" id="openrouter_api_key" name="openrouter_api_key" 
+                                               value="{{ config.openrouter_api_key or '' }}"
+                                               placeholder="sk-or-...">
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Ottieni la tua API key da <a href="https://openrouter.ai/keys" target="_blank">OpenRouter</a>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="openrouter_model" class="form-label">Modello</label>
+                                        <select class="form-select" id="openrouter_model" name="openrouter_model">
+                                            <option value="">Seleziona un modello...</option>
+                                            {% for model in openrouter_models %}
+                                            <option value="{{ model.model_id }}" 
+                                                    {{ 'selected' if config.openrouter_model == model.model_id else '' }}
+                                                    data-context="{{ model.context_length }}"
+                                                    data-free="{{ model.is_free }}">
+                                                {{ model.name }}
+                                                {% if model.is_free %}
+                                                <span class="badge bg-success ms-1">FREE</span>
+                                                {% endif %}
+                                                ({{ model.context_length }}K context)
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text">Scegli un modello OpenRouter</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Parametri generali -->
+                        <div class="card border-secondary mb-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Parametri di Generazione</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="temperature" class="form-label">Temperature</label>
+                                            <input type="number" class="form-control" id="temperature" name="temperature" 
+                                                   value="{{ config.temperature }}" step="0.1" min="0" max="2">
+                                            <div class="form-text">Controllo creatività (0=conservativo, 2=creativo)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="max_tokens" class="form-label">Max Tokens</label>
+                                            <input type="number" class="form-control" id="max_tokens" name="max_tokens" 
+                                                   value="{{ config.max_tokens }}" min="100" max="4000">
+                                            <div class="form-text">Lunghezza massima risposta</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="system_prompt" class="form-label">Prompt di Sistema</label>
+                                    <textarea class="form-control" id="system_prompt" name="system_prompt" rows="4" 
+                                              placeholder="Sei un assistente specializzato nell'etichettatura di testi educativi...">{{ config.system_prompt }}</textarea>
+                                    <div class="form-text">Istruzioni per guidare il comportamento dell'AI</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stato attivo -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                       {{ 'checked' if config.is_active else '' }}>
+                                <label class="form-check-label" for="is_active">
+                                    Configurazione attiva
+                                </label>
+                                <div class="form-text">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Solo una configurazione può essere attiva alla volta
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pulsanti -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('admin.ai_configuration') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Annulla
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary me-2" id="test-config-btn">
+                                    <i class="bi bi-check-circle me-1"></i>Test Connessione
+                                    <div class="loading-spinner spinner-border spinner-border-sm" role="status" style="display: none;">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-1"></i>Salva Modifiche
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Risultato Test -->
+                        <div id="test-result" class="test-result mt-3" style="display: none;"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Test configurazione
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('test-config-btn').addEventListener('click', function() {
+        const configId = {{ config.id }};
+        const spinner = this.querySelector('.loading-spinner');
+        const resultDiv = document.getElementById('test-result');
+        
+        // Mostra spinner
+        spinner.style.display = 'inline-block';
+        this.disabled = true;
+        resultDiv.style.display = 'none';
+        
+        // Test di connessione
+        fetch(`/admin/ai-config/${configId}/test`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `test-result ${data.success ? 'test-success' : 'test-error'}`;
+            resultDiv.textContent = data.message;
+            resultDiv.style.display = 'block';
+        })
+        .catch(error => {
+            resultDiv.className = 'test-result test-error';
+            resultDiv.textContent = 'Errore nella connessione: ' + error.message;
+            resultDiv.style.display = 'block';
+        })
+        .finally(() => {
+            spinner.style.display = 'none';
+            this.disabled = false;
+        });
+    });
+});
+
+function toggleProviderSettings() {
+    const provider = document.getElementById('provider').value;
+    const ollamaSettings = document.getElementById('ollama-settings');
+    const openrouterSettings = document.getElementById('openrouter-settings');
+    
+    if (provider === 'ollama') {
+        ollamaSettings.style.display = 'block';
+        openrouterSettings.style.display = 'none';
+    } else if (provider === 'openrouter') {
+        ollamaSettings.style.display = 'none';
+        openrouterSettings.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

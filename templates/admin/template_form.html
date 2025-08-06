@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}{% if template %}Modifica Template{% else %}Nuovo Template{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-file-text"></i> 
+                    {% if template %}Modifica Template: {{ template.name }}{% else %}Nuovo Template AI{% endif %}
+                </h2>
+                <a href="{{ url_for('admin.manage_templates') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Torna ai Template
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-gear"></i> Configurazione Template
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" id="template-form">
+                                <!-- Nome Template -->
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="bi bi-tag me-1"></i>Nome Template <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ template.name if template else (name if name else '') }}" 
+                                           required maxlength="100"
+                                           placeholder="Es: Sentiment Analysis Educativo">
+                                    <div class="form-text">Nome univoco per identificare il template</div>
+                                </div>
+
+                                <!-- Categoria -->
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">
+                                        <i class="bi bi-folder me-1"></i>Categoria
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="category" name="category" 
+                                               value="{{ template.category if template else (category if category else '') }}" 
+                                               maxlength="100" list="category-suggestions"
+                                               placeholder="Es: Sentiment Analysis, Usage Patterns">
+                                        <button type="button" class="btn btn-outline-secondary" id="load-categories" title="Carica categorie esistenti">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </div>
+                                    <datalist id="category-suggestions"></datalist>
+                                    <div class="form-text">Raggruppa template simili (opzionale)</div>
+                                </div>
+
+                                <!-- Descrizione -->
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">
+                                        <i class="bi bi-info-circle me-1"></i>Descrizione
+                                    </label>
+                                    <textarea class="form-control" id="description" name="description" 
+                                              rows="3" maxlength="500"
+                                              placeholder="Descrizione breve del template e del suo utilizzo">{{ template.description if template else (description if description else '') }}</textarea>
+                                    <div class="form-text">Spiega quando utilizzare questo template</div>
+                                </div>
+
+                                <!-- Prompt Base -->
+                                <div class="mb-3">
+                                    <label for="base_prompt" class="form-label">
+                                        <i class="bi bi-code me-1"></i>Prompt Base <span class="text-danger">*</span>
+                                    </label>
+                                    <textarea class="form-control" id="base_prompt" name="base_prompt" 
+                                              rows="12" required style="font-family: 'Consolas', 'Monaco', monospace;"
+                                              placeholder="Inserisci il prompt base qui...">{{ template.base_prompt if template else (base_prompt if base_prompt else '') }}</textarea>
+                                    <div class="form-text">
+                                        <i class="bi bi-lightbulb text-warning me-1"></i>
+                                        Il sistema aggiungerà automaticamente le etichette disponibili e i testi da analizzare
+                                    </div>
+                                </div>
+
+                                <!-- Stato (solo in modifica) -->
+                                {% if template %}
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                               {% if template.is_active %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_active">
+                                            <i class="bi bi-check-circle me-1"></i>Template attivo
+                                        </label>
+                                    </div>
+                                    <div class="form-text">Template attivi sono disponibili per la generazione AI</div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Pulsanti -->
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-{% if template %}pencil{% else %}plus-circle{% endif %} me-1"></i>
+                                        {% if template %}Aggiorna Template{% else %}Crea Template{% endif %}
+                                    </button>
+                                    
+                                    {% if template %}
+                                    <button type="button" class="btn btn-outline-info" id="preview-btn">
+                                        <i class="bi bi-eye me-1"></i>Anteprima
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <a href="{{ url_for('admin.manage_templates') }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle me-1"></i>Annulla
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4">
+                    <!-- Guida Template -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="bi bi-question-circle me-1"></i>Guida Template
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <h6>📝 Suggerimenti per il Prompt</h6>
+                            <ul class="small">
+                                <li><strong>Sii specifico:</strong> Definisci chiaramente il compito dell'AI</li>
+                                <li><strong>Fornisci esempi:</strong> Mostra il formato di risposta desiderato</li>
+                                <li><strong>Specifica l'output:</strong> JSON, lista, testo libero, etc.</li>
+                                <li><strong>Gestisci edge cases:</strong> Cosa fare con testi ambigui</li>
+                            </ul>
+                            
+                            <h6>🏷️ Categorie Comuni</h6>
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                <span class="badge bg-primary">Sentiment Analysis</span>
+                                <span class="badge bg-info">Usage Patterns</span>
+                                <span class="badge bg-success">Benefits Analysis</span>
+                                <span class="badge bg-warning">Ethical Concerns</span>
+                                <span class="badge bg-secondary">Educational Experience</span>
+                                <span class="badge bg-dark">Future Perspectives</span>
+                            </div>
+                            
+                            <h6>🔧 Variabili Disponibili</h6>
+                            <p class="small text-muted">
+                                Il sistema aggiungerà automaticamente:
+                            </p>
+                            <ul class="small">
+                                <li><code>ETICHETTE DISPONIBILI</code>: Lista delle etichette con descrizioni</li>
+                                <li><code>TESTI DA ANALIZZARE</code>: I testi numerati da processare</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Template di Esempio -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="bi bi-lightbulb me-1"></i>Esempio Template
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="small bg-light p-2 rounded"><code>Sei un esperto analista di sentiment per contenuti educativi.
+
+Analizza i seguenti testi e assegna le etichette più appropriate.
+
+ISTRUZIONI:
+1. Identifica il sentiment generale (positivo, negativo, neutro)
+2. Rileva specifiche emozioni (soddisfazione, frustrazione, curiosità)
+3. Considera il contesto educativo
+4. Assegna 1-3 etichette per testo
+
+FORMATO RISPOSTA:
+Per ogni testo, rispondi con: "Testo N: [etichetta1, etichetta2]"
+
+IMPORTANTE: Usa SOLO etichette dalla lista fornita.</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Anteprima -->
+{% if template %}
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-eye me-2"></i>Anteprima Template: {{ template.name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-loading" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Generazione anteprima...</p>
+                </div>
+                <div id="preview-content" style="display: none;">
+                    <textarea id="preview-text" class="form-control" rows="15" readonly 
+                              style="font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85em;"></textarea>
+                </div>
+                <div id="preview-error" class="alert alert-danger" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="copy-preview">
+                    <i class="bi bi-clipboard me-1"></i>Copia
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Carica categorie esistenti
+    document.getElementById('load-categories')?.addEventListener('click', loadExistingCategories);
+    
+    // Anteprima template (solo in modifica)
+    {% if template %}
+    document.getElementById('preview-btn')?.addEventListener('click', function() {
+        showPreview({{ template.id }});
+    });
+    
+    document.getElementById('copy-preview')?.addEventListener('click', function() {
+        const text = document.getElementById('preview-text').value;
+        if (text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Anteprima copiata negli appunti!', 'success');
+            });
+        }
+    });
+    {% endif %}
+    
+    // Validazione form
+    document.getElementById('template-form').addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const basePrompt = document.getElementById('base_prompt').value.trim();
+        
+        if (!name) {
+            e.preventDefault();
+            showToast('Nome template richiesto', 'error');
+            document.getElementById('name').focus();
+            return;
+        }
+        
+        if (!basePrompt) {
+            e.preventDefault();
+            showToast('Prompt base richiesto', 'error');
+            document.getElementById('base_prompt').focus();
+            return;
+        }
+        
+        if (basePrompt.length < 50) {
+            e.preventDefault();
+            showToast('Il prompt base dovrebbe essere più dettagliato (almeno 50 caratteri)', 'warning');
+            document.getElementById('base_prompt').focus();
+            return;
+        }
+    });
+    
+    // Contatore caratteri per descrizione
+    const descTextarea = document.getElementById('description');
+    if (descTextarea) {
+        const maxLength = 500;
+        const counter = document.createElement('div');
+        counter.className = 'form-text text-end';
+        counter.id = 'desc-counter';
+        descTextarea.parentNode.appendChild(counter);
+        
+        function updateCounter() {
+            const remaining = maxLength - descTextarea.value.length;
+            counter.textContent = `${remaining} caratteri rimanenti`;
+            counter.className = `form-text text-end ${remaining < 50 ? 'text-warning' : ''}`;
+        }
+        
+        descTextarea.addEventListener('input', updateCounter);
+        updateCounter();
+    }
+    
+    function loadExistingCategories() {
+        fetch('/admin/templates/categories')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const datalist = document.getElementById('category-suggestions');
+                datalist.innerHTML = '';
+                
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    datalist.appendChild(option);
+                });
+                
+                showToast(`Caricate ${data.categories.length} categorie esistenti`, 'success');
+            }
+        })
+        .catch(error => {
+            showToast('Errore nel caricamento delle categorie', 'error');
+        });
+    }
+    
+    {% if template %}
+    function showPreview(templateId) {
+        const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+        const loading = document.getElementById('preview-loading');
+        const content = document.getElementById('preview-content');
+        const error = document.getElementById('preview-error');
+        
+        // Reset
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        error.style.display = 'none';
+        
+        modal.show();
+        
+        fetch(`/admin/templates/${templateId}/preview`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            
+            if (data.success) {
+                document.getElementById('preview-text').value = data.preview || '';
+                content.style.display = 'block';
+            } else {
+                error.textContent = data.message || 'Errore nella generazione dell\'anteprima';
+                error.style.display = 'block';
+            }
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            error.textContent = 'Errore di connessione: ' + err.message;
+            error.style.display = 'block';
+        });
+    }
+    {% endif %}
+    
+    function showToast(message, type = 'info') {
+        const alertClass = type === 'success' ? 'alert-success' : 
+                          type === 'error' ? 'alert-danger' : 
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
+        
+        const toast = document.createElement('div');
+        toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+    
+    // Carica categorie automaticamente all'avvio
+    loadExistingCategories();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Configurazione AI{% endblock %}
+
+{% block extra_css %}
+<style>
+.config-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.config-card.active {
+    border-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.config-header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+
+.config-body {
+    padding: 15px;
+}
+
+.provider-badge {
+    font-size: 0.8em;
+    padding: 4px 8px;
+    border-radius: 12px;
+    color: white;
+}
+
+.provider-ollama { background-color: #6c757d; }
+.provider-openrouter { background-color: #007bff; }
+
+.test-result {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.test-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.test-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.ai-stats {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 10px;
+}
+
+.stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.loading-spinner {
+    display: none;
+    margin-left: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-robot"></i> Configurazione AI</h2>
+                <a href="{{ url_for('admin.create_ai_config') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nuova Configurazione
+                </a>
+            </div>
+
+            <!-- Statistiche AI -->
+            <div class="ai-stats">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ configurations|length }}</div>
+                            <div>Configurazioni</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ ollama_models|length }}</div>
+                            <div>Modelli Ollama</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ openrouter_models|length }}</div>
+                            <div>Modelli OpenRouter</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-number">
+                                {{ configurations|selectattr('is_active', 'equalto', true)|list|length }}
+                            </div>
+                            <div>Configurazione Attiva</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accesso Rapido -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <a href="{{ url_for('admin.ollama_models') }}" class="btn btn-outline-secondary btn-block">
+                        <i class="fas fa-download"></i> Gestione Modelli Ollama
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="{{ url_for('admin.openrouter_models') }}" class="btn btn-outline-primary btn-block">
+                        <i class="fas fa-cloud"></i> Modelli OpenRouter
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="{{ url_for('admin.openrouter_usage') }}" class="btn btn-outline-info btn-block">
+                        <i class="fas fa-chart-line"></i> Utilizzo OpenRouter
+                    </a>
+                </div>
+            </div>
+
+            <!-- Lista Configurazioni -->
+            {% if configurations %}
+                {% for config in configurations %}
+                <div class="config-card {% if config.is_active %}active{% endif %}">
+                    <div class="config-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">
+                                    {{ config.name }}
+                                    {% if config.is_active %}
+                                        <span class="badge badge-success ml-2">ATTIVA</span>
+                                    {% endif %}
+                                </h5>
+                                <span class="provider-badge provider-{{ config.provider }}">
+                                    {{ config.provider|upper }}
+                                </span>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary test-config-btn" 
+                                        data-config-id="{{ config.id }}">
+                                    <i class="fas fa-check-circle"></i> Testa
+                                    <div class="loading-spinner spinner-border spinner-border-sm" role="status">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+                                
+                                <a href="{{ url_for('admin.edit_ai_config', config_id=config.id) }}" 
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-edit"></i> Modifica
+                                </a>
+                                
+                                <form method="POST" action="{{ url_for('admin.toggle_ai_config', config_id=config.id) }}" 
+                                      style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    {% if config.is_active %}
+                                    <button type="submit" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-pause"></i> Disattiva
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-play"></i> Attiva
+                                    </button>
+                                    {% endif %}
+                                </form>
+                                
+                                <form method="POST" action="{{ url_for('admin.delete_ai_config', config_id=config.id) }}" 
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Sei sicuro di voler eliminare questa configurazione?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i> Elimina
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Configurazione</h6>
+                                <ul class="list-unstyled">
+                                    {% if config.provider == 'ollama' %}
+                                        <li><strong>URL:</strong> {{ config.ollama_url }}</li>
+                                        <li><strong>Modello:</strong> {{ config.ollama_model }}</li>
+                                    {% elif config.provider == 'openrouter' %}
+                                        <li><strong>Modello:</strong> {{ config.openrouter_model }}</li>
+                                        <li><strong>API Key:</strong> {{ '***' + config.openrouter_api_key[-4:] if config.openrouter_api_key else 'Non configurata' }}</li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Parametri</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Temperature:</strong> {{ config.temperature }}</li>
+                                    <li><strong>Max Tokens:</strong> {{ config.max_tokens }}</li>
+                                    <li><strong>Creata:</strong> {{ config.created_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {% if config.system_prompt %}
+                        <div class="mt-3">
+                            <h6>Prompt di Sistema</h6>
+                            <div class="bg-light p-2 rounded">
+                                <small>{{ config.system_prompt[:200] }}{% if config.system_prompt|length > 200 %}...{% endif %}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div id="test-result-{{ config.id }}" class="test-result" style="display: none;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Nessuna configurazione AI trovata. 
+                    <a href="{{ url_for('admin.create_ai_config') }}">Crea la prima configurazione</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test configurazione
+    document.querySelectorAll('.test-config-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            const spinner = this.querySelector('.loading-spinner');
+            const resultDiv = document.getElementById(`test-result-${configId}`);
+            
+            // Mostra spinner
+            spinner.style.display = 'inline-block';
+            this.disabled = true;
+            resultDiv.style.display = 'none';
+            
+            fetch(`{{ url_for('admin.test_ai_config', config_id=0) }}`.replace('0', configId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                // Controlla se la risposta è redirect (non autenticato)
+                if (response.status === 302 || response.redirected) {
+                    throw new Error('Non autenticato - effettua il login come admin');
+                }
+                
+                // Controlla se la risposta è JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Risposta non valida dal server');
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                resultDiv.className = `test-result ${data.success ? 'test-success' : 'test-error'}`;
+                resultDiv.textContent = data.message;
+                resultDiv.style.display = 'block';
+            })
+            .catch(error => {
+                resultDiv.className = 'test-result test-error';
+                resultDiv.textContent = 'Errore: ' + error.message;
+                resultDiv.style.display = 'block';
+                console.error('Test connection error:', error);
+            })
+            .finally(() => {
+                spinner.style.display = 'none';
+                this.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
