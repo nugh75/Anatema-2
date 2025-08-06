@@ -20,10 +20,10 @@ def main():
     
     # Configurazioni specifiche per Docker
     os.environ['DOCKER_MODE'] = '1'
-    os.environ['DOCKER_PORT'] = '5000'
+    os.environ['DOCKER_PORT'] = '5016'
     
     print("🐳 Avvio in modalità DOCKER/PRODUZIONE")
-    print("📍 Porta: 5000")
+    print("📍 Porta: 5016")
     print("🗄️  Database: instance/analisi_mu.db")
     print("🔧 Debug: DISATTIVO")
     print("=" * 50)
@@ -35,7 +35,7 @@ def main():
     try:
         app.run(
             host='0.0.0.0',
-            port=5000,
+            port=5016,
             debug=False,
             threaded=True
         )

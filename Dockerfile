@@ -46,12 +46,12 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite:////app/instance/analisi_mu.db
 
-# Espone la porta 5000
-EXPOSE 5000
+# Espone la porta 5016
+EXPOSE 5016
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD curl -f http://localhost:5016/ || exit 1
 
 # Comando per avviare l'applicazione con script di init
 CMD ["/app/docker-init.sh"]

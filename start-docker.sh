@@ -13,7 +13,7 @@ fi
 
 # Funzione per controllare se il container è healthy
 check_health() {
-    local container_name="anatema"
+    local container_name="anatema-2"
     local max_attempts=30
     local attempt=1
     
@@ -61,7 +61,7 @@ docker-compose up -d
 if check_health; then
     echo ""
     echo "🎉Anatema è pronto!"
-    echo "📊 Dashboard: http://localhost:5000"
+    echo "📊 Dashboard: http://localhost:5016"
     echo "🔑 Login: admin / admin123"
     echo ""
     echo "📋 Comandi utili:"

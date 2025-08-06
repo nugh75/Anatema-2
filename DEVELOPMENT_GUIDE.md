@@ -11,7 +11,7 @@ Questo progetto supporta due modalità di avvio separate per evitare conflitti t
 - **Hot Reload**: Attivo
 
 ### 🐳 Modalità Docker/Produzione
-- **Porta**: 5000
+- **Porta**: 5016
 - **Database**: `instance/analisi_mu.db`
 - **Debug**: Disattivo
 - **Ottimizzato**: Per produzione
@@ -77,7 +77,7 @@ http://localhost:5001
 
 ### Docker/Produzione
 ```
-http://localhost:5000
+http://localhost:5016
 ```
 
 ## 🚦 Verifica Status

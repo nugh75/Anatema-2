@@ -12,7 +12,7 @@ NC=\033[0m # No Color
 # Configurazione di default
 COMPOSE_FILE=docker-compose.yml
 COMPOSE_FILE_PROD=docker-compose.prod.yml
-CONTAINER_NAME=anatema-web
+CONTAINER_NAME=anatema-2
 
 help: ## Mostra questo messaggio di aiuto
 	@echo "$(GREEN)Comandi disponibili perAnatema:$(NC)"
@@ -127,7 +127,7 @@ init: ## Inizializza il progetto (prima volta)
 	fi
 	@make build
 	@make up
-	@echo "$(GREEN)Project initialized! Access at http://localhost:5000$(NC)"
+	@echo "$(GREEN)Project initialized! Access at http://localhost:5016$(NC)"
 
 # Comandi per la sincronizzazione etichette
 sync-colors: ## Sincronizza i colori delle etichette (esegue nel container)
